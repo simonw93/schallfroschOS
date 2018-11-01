@@ -94,8 +94,7 @@ enum signalSource {
   ************************************************
    Variables for saving states
 */
-// True if top is closed.
-bool topClosed;
+
 
 // True if the alarm is active.
 bool alarm_active;
@@ -120,9 +119,6 @@ int chargeCurrent = 0;
 
 signalSource source = SOURCE_BLUETOOTH;
 
-//flag for when source was changed
-bool sourceChanged = false;
-
 bool onboardLedState = false;
 
 /**
@@ -142,12 +138,6 @@ bool displayActive = false;
 // Saves the state of the 12V converter. True if on.
 bool converter12v = false;
 
-// Encoder flags
-//True if the encoder was recently turned
-bool encoderTurnedLeft = false;
-bool encoderTurnedRight = false;
-bool encoderPressedShort = false;
-bool encoderPressedLong = false;
 
 /**
    End of variables for saving states
@@ -242,6 +232,8 @@ LiquidCrystal_I2C lcd(0x27, 16, 4);
 // outputs to pins 18 and 17.
 Rotary rotary = Rotary(encoderPinA, encoderPinB);
 
+LCDMenu lcdMenu = LCDMenu();
+
 
 /**
    End of object instances
@@ -259,6 +251,8 @@ Rotary rotary = Rotary(encoderPinA, encoderPinB);
    Schliessfach oeffnen
    Alarm aktivieren
 */
+int menPos[4] = {0, -1, -1, -1};
+
 bool menuActive = false; // Menu can be active or inactive
 const int menuCount = 6;
 const int subMenuCount = 4;
@@ -301,6 +295,7 @@ void setup() {
   // LCD
 
   lcd.begin(); // initialize the LCD
+  lcdMenu.init(&lcd);
 
   //print boot screen
   lcd.setCursor(0, 0);
@@ -603,7 +598,7 @@ void decVol(int val) {
 
 void changeSource(int newSource) {
   // source = newSource;
-  sourceChanged = true;
+
 }
 
 /**
@@ -1042,4 +1037,41 @@ void updateDisplay() {
 
 
   }
+}
+
+/**
+   New display stuff goes here!
+*/
+
+/**
+   Contains information to display on the LCD. Is put together before updating the screen and handed over to the LCDMenu library.
+*/
+struct displayData
+{
+  int menPos[4];
+  int batteryLevel; // battery level in percent
+  float batteryVoltage; // battery voltage in Volts
+  int volume; // volume
+  signalSource source; // signal source
+  bool alarm; // true if alarm is active
+  chargeMode currentChargeMode; // charge mode
+  bool charging; // true if charging
+  bool chargerConnected; // true if charger is connected
+  int chargeCurrent; // charge current in mA
+};
+
+struct displayData getDisplayData() {
+  struct displayData newData;
+  memcpy(newData.menPos, menPos, 4);
+  newData.batteryLevel = batteryLevel;
+  newData.batteryVoltage = batteryVoltageAverage;
+  newData.volume = volume;
+  newData.source = source;
+  newData.alarm = alarm_active;
+  newData.currentChargeMode = currentChargeMode;
+  newData.charging = charging;
+  newData.chargerConnected = chargerConnected;
+  newData.chargeCurrent = chargeCurrent;
+
+  return newData;
 }
