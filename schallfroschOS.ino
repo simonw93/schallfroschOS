@@ -10,6 +10,7 @@
 #include <LiquidCrystal_I2C.h> //https://github.com/marcoschwartz/LiquidCrystal_I2C/
 #include <Rotary.h> //http://www.buxtronix.net/2011/10/rotary-encoders-done-properly.html
 #include "LCDMenu.h"
+#include "SchallfroschBackend.h"
 
 // version of this project
 const String schallfroschOS_version = "v0.2";
