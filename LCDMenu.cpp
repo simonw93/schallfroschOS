@@ -1,75 +1,89 @@
 #include "LCDMenu.h"
 #include <LiquidCrystal_I2C.h>
+#include <Rotary.h> //http://www.buxtronix.net/2011/10/rotary-encoders-done-properly.html
+#include <Arduino.h>
 
 /**
-  Menüstruktur
-  • Lautstärke
-  ° Lautstärke ändern
-  • Modus
-  ° Eco (an/aus)
-  • Geräte
-  ° 12V an/aus
-  ° USB-Lader an/aus
-  ° Soundboard an/aus
-  • Akku
-  ° Statistiken anzeigen?
-  ° Prozentanzeige, Spannung
-  ° Restlaufzeit
-  ° Energiesparmodus aktivieren
-  • Signalquellen
-  ° Bluetooth
-  ° AUX
-  ° Radio
-  ° Raspberry Pi
-  • Radio
-  ° Frequenz anzeigen
-  ° Frequenz ändern
-  ° Senderliste
-  • Beleuchtung
-  ° Ein-/ Ausschalten
-  ° Modi
-      Automatisch
-      Sound2Light
-      Fade (Farbübergänge durchgehend)
-      Statisch
-      Programme (vordefinierte Abfolgen)
-      Helligkeit
-  • Schließfach
-  ° Öffnen (braucht Authorisierung)
-  • Alarm
-  ° Bewegungsalarm Aktivieren (braucht Authorisierung)
-  ° Standortalarm aktivieren (braucht Authorisierung)
-  ° Deaktivieren (braucht Authorisierung)
-  ° Einstellungen
-      Alarmlautstärke
-  • DSP
-  • Audioprofile
-    ° Indoor
-    ° Outdoor
-    ° Subwoofer aktiv (wenn Subs angeschlossen)
-    ° MaxSPL
-  • WiFi
-  • Ein-/Ausschalten
-  • verbundene Geräte anzeigen?
-  • Verbindungsinformationen anzeigen
-    ° erfordert Authorisierung
-  • Einschränkungen
-  ° Maximallautstärke
-  ° USB-Lader
-  ° Minimaler Ladestand
-  • Debug
-  ° Sensoren
-      Temperaturen
-      Accelerometer
-      Ladestrom
-      Laufzeit
-  ° Version
-  • Administration
-  ° Token hinzufügen (Authorisierung)
-  ° Token entfernen
-  • Sperren
-
+   Rotary encoder variables
 */
+
+// encoder position
+volatile int encoderCount = 0;
+boolean button_set = false;
+boolean buttonLongPressed = false;
+long encoderButtonTimer = 0; //Timer for when the encoder button was pressed the last time
+const long encoderButtonLongPressTime = 500;
+const int encoderPinA = 18;   // right
+const int encoderPinB = 17;   // left
+const int encoderButton = 19; // switch
+
+/**
+ * Constants
+ */
+
+const long menuScreensaver_period = 10000;
+
+// Value for how long the volume should be displayed
+const long volumeDisplay_period = 2000;
+
+const int mainMenuSize = 15;
+// main menu entry names
+const String mainMenuEntries[mainMenuSize] = {
+  "Lautstaerke",
+  "Energiemodus",
+  "Geraete",
+  "Akku",
+  "Signalquelle",
+  "Radio",
+  "Beleuchtung",
+  "Schliessfach",
+  "Alarm",
+  "DSP",
+  "WiFi",
+  "Berechtigungen",
+  "Debug",
+  "Administration",
+  "Sperren"
+};
+
+const int subMenuSizes[mainMenuSize] = {1, 2, 3, 4, 4, 3, 2, 1, 4, 1, 3, 3, 2, 2, 0};
+
+const String subMenuEntries[mainMenuSize][4] = {
+  {"Lautstaerke: "},
+  {"Eco Modus", "SPL Modus"},
+  {"12V: ", "USB-Lader: ", "Soundboard: "},
+  {"Ladestand: ", "Rest: ", "", "Statistik"}, // [3][2] wird geladen/-
+  {"Bluetooth", "AUX", "Radio", "Raspberry"},
+  {"Frequenz: ", "F. aendern", "Senderliste"},
+  {"", "Modus"}, // [6][0] Beleuchtung an/aus
+  {"Fach oeffnen"},
+  {"Bewegungsalarm", "Standortalarm", "Deaktivieren", "Einstellungen"},
+  {"Audioprofile"},
+  {"", "Verb. Geraete", "Passw. zeigen"}, // [10][0] WiFi an/ WiFi aus
+  {"Max. Lautst.", "USB-Lader", "Min. Akkustand"},
+  {"Sensoren", "Version"},
+  {"Nutzer hinzuf.", "Nutzer entf."},
+  {}
+};
+
+
+// character to indicate cursor position
+const uint8_t cross[8] = {0x0, 0x1b, 0xe, 0x4, 0xe, 0x1b, 0x0};
+
+/**
+ * Timers
+ */
+// When value is reached, display can be refreshed again
+long display_refresh_timer = 0;
+
+//When value is reached, go back to the dashboard
+long menuScreensaver = menuScreensaver_period;
+
+
+/**
+ * Callback functions
+ */
+  void (* menu_cb_refresh_data)();
 
 /**
    Enum definitions, struct definitions
@@ -105,64 +119,37 @@ struct displayData
 };
 
 
+
 /**
    Variables, constants and timers
 */
 struct displayData dData; // stores the latest received displayData
 LiquidCrystal_I2C *myLcd;
-
-const int mainMenuSize = 15;
-// main menu entry names
-String mainMenuEntries[mainMenuSize] = {
-  "Lautstaerke",
-  "Energiemodus",
-  "Geraete",
-  "Akku",
-  "Signalquelle",
-  "Radio",
-  "Beleuchtung",
-  "Schliessfach",
-  "Alarm",
-  "DSP",
-  "WiFi",
-  "Berechtigungen",
-  "Debug",
-  "Administration",
-  "Sperren"
-};
-
-const int subMenuSizes[mainMenuSize] = {1, 2, 3, 4, 4, 3, 2, 1, 4, 1, 3, 3, 2, 2, 0};
-
-String subMenuEntries[mainMenuSize][4] = {
-  {"Lautstaerke: "},
-  {"Eco Modus", "SPL Modus"},
-  {"12V: ", "USB-Lader: ", "Soundboard: "},
-  {"Ladestand: ", "Rest: ", "", "Statistik"}, // [3][2] wird geladen/-
-  {"Bluetooth", "AUX", "Radio", "Raspberry"},
-  {"Frequenz: ", "F. aendern", "Senderliste"},
-  {"", "Modus"}, // [6][0] Beleuchtung an/aus
-  {"Fach oeffnen"},
-  {"Bewegungsalarm", "Standortalarm", "Deaktivieren", "Einstellungen"},
-  {"Audioprofile"},
-  {"", "Verb. Geraete", "Passw. zeigen"}, // [10][0] WiFi an/ WiFi aus
-  {"Max. Lautst.", "USB-Lader", "Min. Akkustand"},
-  {"Sensoren", "Version"},
-  {"Nutzer hinzuf.", "Nutzer entf."},
-  {}
-};
+Rotary *myRotary;
 
 
-// character to indicate cursor position
-uint8_t cross[8] = {0x0, 0x1b, 0xe, 0x4, 0xe, 0x1b, 0x0};
 
 
 LCDMenu::LCDMenu() {
 }
 
-void LCDMenu::init(LiquidCrystal_I2C *pLcd) {
+void LCDMenu::init(LiquidCrystal_I2C *pLcd, Rotary *pRotary) {
   myLcd = pLcd;
+  myRotary = pRotary;
   myLcd->createChar(6, cross); // create cursor character
+}
 
+void LCDMenu::registerCallbacks(void (*refresh_data)()) {
+  menu_cb_refresh_data = refresh_data;
+}
+
+void LCDMenu::update() {
+  handleEncoder();
+  checkEncoderButton();
+
+  if (millis() > display_refresh_timer) {
+    
+  }
 }
 
 /**
@@ -234,7 +221,7 @@ void LCDMenu::displaySubMenu() {
   //myLcd->setCursor(0, 0); // print cursor
   //myLcd->print("#"); // TODO: change this to the cursor character
   if (subMenuSizes[dData.menPos[1]] >= 4) {
-  myLcd->setCursor(0, 0); // print cursor
+    myLcd->setCursor(0, 0); // print cursor
     myLcd->print("#"); // TODO: change this to the cursor character
     for (int i = 0; i < 4; i++) { //display four entries
       myLcd->setCursor(1, i);
@@ -242,7 +229,7 @@ void LCDMenu::displaySubMenu() {
     }
   }
   else if (subMenuSizes[dData.menPos[1]] > 0) {
-  for (int i = 0; i < subMenuSizes[dData.menPos[1]]; i++) {
+    for (int i = 0; i < subMenuSizes[dData.menPos[1]]; i++) {
       if (i == indexToDisplay) {
         myLcd->setCursor(0, 0); // print cursor
         myLcd->print("#"); // TODO: change this to the cursor character
@@ -254,5 +241,69 @@ void LCDMenu::displaySubMenu() {
   else {
     // do when no sub menu
   }
+}
 
+/**
+ * Rotary encoder section
+ */
+
+void LCDMenu::handleShortPress() {
+  // handle short press
+}
+
+void LCDMenu::handleLongPress() {
+  // handle long press
+}
+
+void LCDMenu::handleLeft() {
+  // handle left
+}
+
+void LCDMenu::handleRight() {
+  // handle right
+}
+
+void LCDMenu::handleEncoder() {
+  if (encoderCount > 0) { // if more right turns than left turns
+    handleRight();
+  }
+  else if (encoderCount < 0) { // if more left turns than right turns
+    handleLeft();
+  }
+  encoderCount = 0; // reset counters
+}
+
+// rotary encoder button handling
+void LCDMenu::checkEncoderButton() {
+  if (digitalRead(encoderButton) == LOW) {
+    if (button_set == false) {
+      button_set = true;
+      encoderButtonTimer = millis(); // start timer
+    }
+    if ((millis() - encoderButtonTimer > encoderButtonLongPressTime) && (buttonLongPressed == false)) {
+      // button is hold for a long time
+      buttonLongPressed = true;
+      handleLongPress();
+    }
+  } else { //if button is not pressed
+    if (button_set == true) {
+      if (buttonLongPressed == true) {
+        buttonLongPressed = false;
+      } else if (millis() - encoderButtonTimer > 50)  { //debounce
+        // do short press routine stuff here
+        handleShortPress();
+      }
+      button_set = false;
+    }
+  }
+}
+
+// rotate is called anytime the rotary inputs change state.
+void LCDMenu::rotate() {
+  unsigned char result = myRotary->process();
+  if (result == DIR_CCW) {
+    encoderCount++;
+  } else if (result == DIR_CW) {
+    encoderCount--;
+  }
 }

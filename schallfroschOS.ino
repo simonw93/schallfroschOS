@@ -31,26 +31,19 @@ const int battery_map_20 = 24; // When the voltage is at this level, it is mappe
 
 const int battery_map_0 = 20; // When the voltage is at this level, it is mapped to 0%.
 
+// Value for how long the display stays on.
+const long display_on_timer_period = 30000;
+
 // Value for how frequent the battery value should be refreshed. 10000 = refresh every 10 seconds.
 const long battery_refresh_timer_period = 10000;
 
 // Value for how frequent the RFID reader checks for new tags in proximity. 2000 = check every 2 seconds.
 const long rfid_check_timer_period = 2000;
 
-// Value for how long the display stays on.
-const long display_on_timer_period = 30000;
-
-const long menuScreensaver_period = 10000;
-
-// Value for how long the volume should be displayed
-const long volumeDisplay_period = 2000;
 
 const String arrow = " <-";
 
-const long rotaryButtonTimer_period = 1500;
 
-const long rotaryLeftCooldown_period = 500;
-const long rotaryRightCooldown_period = 500;
 /**
    End of constants
   ************************************************
@@ -159,15 +152,6 @@ long rfid_check_timer = 0;
 // When value is reached, turn off display
 long display_on_timer = display_on_timer_period;
 
-// When value is reached, display can be refreshed again
-long display_refresh_timer = 0;
-
-//When value is reached, go back to the dashboard
-long menuScreensaver = menuScreensaver_period;
-
-// When value is reached, counts as a long press
-long rotaryButtonTimer = 0;
-
 // When value is reached, display is no longer locked to displaying volume
 long volumeDisplayTimer = 0;
 
@@ -200,7 +184,6 @@ const int lockPin = 7;
 const int pin12v = 8;
 // end of dummy pins
 
-
 // rotary encoder pins
 const int encoderPinA = 18;   // right
 const int encoderPinB = 17;   // left
@@ -228,9 +211,8 @@ const int onboardLED = 2;
 LiquidCrystal_I2C lcd(0x27, 16, 4);
 //MFRC522 mfrc522 = MFRC522(ssPin, resetPin); // Create instance
 
-// Rotary encoder is wired with the common to ground and the two
-// outputs to pins 18 and 17.
 Rotary rotary = Rotary(encoderPinA, encoderPinB);
+
 
 LCDMenu lcdMenu = LCDMenu();
 
@@ -265,24 +247,24 @@ bool displayHasChanged = false; // flag for a change in the menu
   ************************************************
 */
 
-// encoder position
-volatile int encoderCount = 0;
-boolean button_set = false;
-boolean buttonLongPressed = false;
-long encoderButtonTimer = 0; //Timer for when the encoder button was pressed the last time
-const long encoderButtonLongPressTime = 500;
+
 
 void setup() {
-  // rotary encoder pin config
-  pinMode(encoderPinA, INPUT_PULLUP);
-  pinMode(encoderPinB, INPUT_PULLUP);
-  pinMode(encoderButton, INPUT_PULLUP);
+
   pinMode(onboardLED, OUTPUT);
-  attachInterrupt(encoderPinA, rotate, CHANGE);
-  attachInterrupt(encoderPinB, rotate, CHANGE);
 
   Wire.begin(); // initialize I2C
   Serial.begin(115200); // serial output for debugging
+  lcd.begin(); // initialize the LCD
+  lcdMenu.init(&lcd, &rotary);
+
+
+  // rotary encoder setup
+  pinMode(encoderPinA, INPUT_PULLUP);
+  pinMode(encoderPinB, INPUT_PULLUP);
+  pinMode(encoderButton, INPUT_PULLUP);
+  attachInterrupt(encoderPinA, encoderRotate, CHANGE);
+  attachInterrupt(encoderPinB, encoderRotate, CHANGE);
 
   initializeBatteryValues(measureBatteryVoltage(battery_voltage_iterations)); //initialize the battery values
   updateBattery(); // call updateBattery() to initialize all values
@@ -294,9 +276,8 @@ void setup() {
 
   // LCD
 
-  lcd.begin(); // initialize the LCD
-  lcdMenu.init(&lcd);
-
+  
+  
   //print boot screen
   lcd.setCursor(0, 0);
   lcd.print("Schallfrosch OS");
@@ -308,71 +289,17 @@ void setup() {
 
 
 void loop() {
-  //rotating = true;  // reset the debouncer
   checkTimers(); // Check for timers that are due
-  handleEncoder();
-  checkEncoderButton();
-  updateDisplay();
+  lcdMenu.update();
 }
 
-// rotate is called anytime the rotary inputs change state.
-void rotate() {
-  unsigned char result = rotary.process();
-  if (result == DIR_CCW) {
-    encoderCount++;
-  } else if (result == DIR_CW) {
-    encoderCount--;
-  }
+// handler for rotary encoder. TODO: Make nicer
+void encoderRotate() {
+  lcdMenu.rotate();
 }
 
-void handleEncoder() {
 
-  if (encoderCount > 0) { // if more right turns than left turns
-    handleRight();
-  }
-  else if (encoderCount < 0) { // if more left turns than right turns
-    handleLeft();
-  }
-  encoderCount = 0; // reset counters
 
-}
-
-// rotary encoder button handling
-void checkEncoderButton() {
-  if (digitalRead(encoderButton) == LOW) {
-
-    if (button_set == false) {
-
-      button_set = true;
-      encoderButtonTimer = millis(); // start timer
-
-    }
-
-    if ((millis() - encoderButtonTimer > encoderButtonLongPressTime) && (buttonLongPressed == false)) {
-      // button is hold for a long time
-      buttonLongPressed = true;
-      Serial.println("Long press!");
-      handleLongPress();
-
-    }
-
-  } else { //if button is not pressed
-
-    if (button_set == true) {
-
-      if (buttonLongPressed == true) {
-
-        buttonLongPressed = false;
-
-      } else if (millis() - encoderButtonTimer > 50)  { //debounce
-        // do short press routine stuff here
-        Serial.println("Short press!");
-        handleShortPress();
-      }
-      button_set = false;
-    }
-  }
-}
 
 
 /**
@@ -509,20 +436,6 @@ void checkTimers() {
     checkRFID();
     rfid_check_timer = rfid_check_timer_period + currentMillis;
   }
-  if (currentMillis > display_on_timer && displayActive) {
-    switchDisplay(false); // turn off display
-  }
-
-  if ((currentMillis > menuScreensaver) && menuActive) {
-    //updateDashboard(); // activate screensaver
-    deactivateMenu();
-    setDisplayChanged();
-  }
-
-  if (currentMillis > volumeDisplayTimer && volumeDisplayTimer > 0) {
-    setDisplayChanged();
-    volumeDisplayTimer = 0;
-  }
 }
 
 void checkRFID() {
@@ -596,452 +509,10 @@ void decVol(int val) {
   }
 }
 
-void changeSource(int newSource) {
-  // source = newSource;
-
-}
-
-/**
-   Prints the volume screen to the display.
-*/
-void displayVolume() {
-  lcd.clear();
-  lcd.setCursor(0, 0);
-  String message = "Lautstaerke:";
-  message.concat(volume);
-  message.concat("%");
-  lcd.print(message);
-  // TODO: Create custom chars to show a nice bar from left to right!
-
-}
-
-/**
-   Prints the battery information to the display.
-   Battery information contains:
-    Battery level (in percent and Volts)
-    Charging current (if any)
-    Remaining runtime/ remaining charging time
-
-*/
-void displayBattery() {
-  lcd.clear();
-  lcd.setCursor(0, 0); // set cursor to first row
-  String message = "Bat:";
-  message.concat(batteryLevel);
-  message.concat("%,");
-  message.concat(batteryVoltageAverage);
-  message.concat("V");
-  lcd.print(message);
-
-  lcd.setCursor(0, 1); // set cursor to 2nd row
-  if (charging ) {
-    String message = "Ladestrom:";
-    message.concat(chargeCurrent);
-    message.concat("mA");
-    lcd.print(message);
-  }
-  else if (!chargerConnected) {
-    lcd.print("Kein Ladevorgang"); // no charger connected = not charging!
-  }
-  else if (chargerConnected && !charging) {
-    lcd.print("Laden beendet!"); // charger connected, but not charging = fully charged!
-  }
-
-  lcd.setCursor(0, 2);
-  if (charging) {
-    lcd.print("Laedt noch ");
-  }
-  else {
-    lcd.print("Verbleibend: ");
-  }
-  lcd.setCursor(0, 3);
-  switch (currentChargeMode) {
-    case CHARGE_NORMAL:
-      lcd.print("Modus: Normal");
-      break;
-    case CHARGE_MAX:
-      lcd.print("Modus: Maximal");
-      break;
-    case CHARGE_NONE:
-      lcd.print("Modus: None");
-  }
-
-}
-
-/**
-   Display the available signal sources.
-   Depending on the sub menu position, display a cursor next to the option
-   Options are:
-   Bluetooth
-   AUX
-   Radio
-   Raspberry
-*/
-void displaySignalSource() {
-  lcd.clear();
-  String messages[] = {"Bluetooth", "AUX", "Radio", "Raspberry"};
-
-  if (subMenuPosition >= 0 && subMenuPosition <= 3) {
-    messages[subMenuPosition].concat(arrow);
-  }
-  else { //this should never happen
-    lcd.print("Error: subMenuPosition is invalid!");
-  }
-
-  for (int i = 0; i < 4; i++) {
-    lcd.setCursor(0, i);
-    lcd.print(messages[i]);
-  }
-}
-
-void displayLighting() {
-  lcd.clear();
-  String messages[] = {"Ein/Aus", "Sound2Light", "Statisch", "Flutlicht"};
-
-  if (subMenuPosition >= 0 && subMenuPosition <= 3) {
-    messages[subMenuPosition].concat(arrow);
-  }
-  else { //this should never happen
-    lcd.print("Error: subMenuPosition is invalid!");
-  }
-
-  for (int i = 0; i < 4; i++) {
-    lcd.setCursor(0, i);
-    lcd.print(messages[i]);
-  }
-}
-
-void displaySafe() {
-  lcd.clear();
-  lcd.setCursor(0, 0);
-  lcd.print("Authorisierung");
-  lcd.setCursor(0, 1);
-  lcd.print("erforderlich!");
-  lcd.setCursor(0, 2);
-  lcd.print("Rad druecken");
-  lcd.setCursor(0, 3);
-  lcd.print("u. authorisieren");
-}
-
-void displayAlarm() {
-  lcd.clear();
-  if (alarm_active) {
-    lcd.setCursor(0, 0);
-    lcd.print("Alarm ist aktiv!");
-    lcd.setCursor(0, 1);
-    lcd.print("Deaktivieren:");
-    lcd.setCursor(0, 2);
-    lcd.print("Rad druecken");
-    lcd.setCursor(0, 3);
-    lcd.print("u. authorisieren");
-  }
-  else {
-    lcd.setCursor(0, 0);
-    lcd.print("Authorisierung");
-    lcd.setCursor(0, 1);
-    lcd.print("erforderlich!");
-    lcd.setCursor(0, 2);
-    lcd.print("Rad druecken");
-    lcd.setCursor(0, 3);
-    lcd.print("u. authorisieren");
-  }
-
-}
-
-void handleLeft() {
-  wakeDisplay();
-  if (!menuActive) { //case: Decrease volume
-    decVol(1);
-    volumeDisplayTimer = millis() + volumeDisplay_period;
-  }
-  else if (menuActive && subMenuPosition >= 0) {
-    if (menuPosition == 0) { // volume submenu
-      decVol(1);
-    }
-    else {
-      subMenuPosition =  subMenuPosition - 1;
-      if (subMenuPosition < 0) {
-        subMenuPosition = subMenuCount - 1;;
-      }
-    }
-  }
-  else {
-    menuPosition -= 1;
-    if (menuPosition  < 0) {
-      menuPosition = menuCount - 1;
-    }
-  }
-  setDisplayChanged();
-
-}
-
-void handleRight() {
-  wakeDisplay();
-  if (!menuActive) { //case: Increase volume
-    incVol(1);
-    volumeDisplayTimer = millis() + volumeDisplay_period;
-  }
-  else if (menuActive && subMenuPosition >= 0) {
-    if (menuPosition == 0) { // volume submenu
-      incVol(1);
-    }
-    else {
-      subMenuPosition += 1;
-      if (subMenuPosition >= subMenuCount) {
-        subMenuPosition = 0;
-      }
-    }
-  }
-
-  else {
-    menuPosition += 1;
-    if (menuPosition  >= menuCount) {
-      menuPosition = 0;
-    }
-  }
-  setDisplayChanged();
-
-}
-
 void toggleOnboardLED() {
   onboardLedState = !onboardLedState;
   digitalWrite(onboardLED, onboardLedState);
 }
-
-/**
-  Top level menus:
-   Lautstaerke
-   Akku
-   Signalquelle
-   Beleuchtung
-   Schliessfach oeffnen
-   Alarm aktivieren
-*/
-void handleShortPress() {
-  //toggleOnboardLED();
-  setDisplayChanged();
-  wakeDisplay();
-
-  if (!menuActive) {
-    menuActive = true;
-  }
-  else if (subMenuPosition == -1) { //main menu
-    //TODO: remove switch case
-    switch (menuPosition) {
-      case 0:
-        subMenuPosition = 0;
-        break;
-      case 1:
-        subMenuPosition = 0;
-        break;
-      case 2:
-        subMenuPosition = 0;
-        break;
-      case 3:
-        subMenuPosition = 0;
-        break;
-      case 4:
-        subMenuPosition = 0;
-        // check RFID
-        break;
-      case 5:
-        subMenuPosition = 0;
-        // check RFID
-        break;
-    }
-  }
-  else if (subMenuPosition >= 0) { // sub Menu
-    switch (menuPosition) {
-      case 2: // audio source
-        switch (subMenuPosition) {
-          case 0:
-            changeSource(0);
-            break;
-          case 1:
-            changeSource (1);
-            break;
-          case 2:
-            changeSource(2);
-            break;
-          case 3:
-            changeSource(3);
-            break;
-          default:
-            break;
-        }
-
-        break;
-      case 3:
-        //TODO lighting
-        switch (subMenuPosition) {
-          case 0:
-            break;
-          default:
-            break;
-        }
-        break;
-      default:
-        break;
-
-    }
-
-  }
-  // use Timers!
-}
-
-/**
-  Long press goes back one menu hierarchy.
-  Turns display on if it is turned off.
-  Closes menu if in main menu.
-*/
-void handleLongPress() {
-  // use Timers!
-  setDisplayChanged();
-  if (!displayActive) {
-    wakeDisplay();
-  }
-  else if (!menuActive) {
-    // switchDisplay(false); //turn off display
-  }
-  else if (subMenuPosition >= 0) {
-    subMenuPosition = -1;
-
-  }
-  else {
-    deactivateMenu();
-  }
-}
-
-
-void wakeDisplay() {
-  if (!displayActive) {
-    switchDisplay(true);
-  }
-}
-
-
-void setDisplayChanged() {
-  menuScreensaver = millis() + menuScreensaver_period; //reset timer
-  display_on_timer = millis() + display_on_timer_period;
-  displayHasChanged = true;
-}
-
-void deactivateMenu() {
-  menuActive = false;  // deactivate menu
-  menuPosition = 0;  // reset menu positions
-  subMenuPosition = -1;
-}
-
-
-
-/**
-     Dashboard is the screen that is shown when not in a menu.
-    Things to display:
-
-*/
-void updateDashboard() {
-  if (displayHasChanged) {
-    lcd.clear();
-    // print battery level
-    lcd.setCursor(0, 0); // set cursor to first row
-    String messageBat = "Bat:";
-    messageBat.concat(batteryLevel);
-    messageBat.concat("%");
-    lcd.print(messageBat);
-
-    //print volume
-    lcd.setCursor(0, 1);
-    String messageVol = "Vol:";
-    messageVol.concat(volume);
-    messageVol.concat("%");
-    lcd.print(messageVol);
-
-    lcd.setCursor(0, 1);
-    String messageSource = "Quelle:";
-
-    switch (source) {
-      case SOURCE_BLUETOOTH:
-        messageSource.concat("BT");
-        break;
-      case SOURCE_AUX:
-        messageSource.concat("AUX");
-        break;
-      case SOURCE_RADIO:
-        messageSource.concat("Radio");
-        break;
-      case SOURCE_RASPBERRY:
-        messageSource.concat("RPI");
-        break;
-    }
-    lcd.print(messageSource);
-  }
-
-}
-
-
-/**
-  Updates the display.
-  TODO: This seems to create crashes/ freezes, FIX!
-*/
-void updateDisplay() {
-
-  if (displayHasChanged && (millis() > display_refresh_timer) && (millis() > 2000)) { // && (millis() > display_refresh_timer)
-    display_refresh_timer = millis() + 500;
-    lcd.clear(); // clear the display
-    if (millis() < volumeDisplayTimer) { // if this is the case, always display volume
-      displayVolume();
-    }
-
-    else if (menuActive) {
-      if (subMenuPosition == -1) { //display main menu
-        String messages[] = {"Lautstaerke", "Akku", "Signalquelle", "Beleuchtung", "Schliessfach", "Alarmanlage"};
-        messages[menuPosition].concat(arrow);
-
-        int firstEntry = 0;
-        if (menuPosition >= 3) { //display last 4 entries
-          firstEntry = 2;
-        }
-        for (int i = 0; i < 4; i++) {
-          lcd.setCursor(0, i);
-          lcd.print(messages[i + firstEntry]);
-        }
-      }
-      else { //display sub menus
-        switch (menuPosition) {
-
-          case 0: // volume menu
-            displayVolume();
-            break;
-          case 1: // battery menu
-            displayBattery();
-            break;
-          case 2: // signal source menu
-            displaySignalSource();
-            break;
-          case 3: // lighting menu
-            displayLighting();
-            break;
-          case 4: // safe menu
-            displaySafe();
-            break;
-          case 5: // alarm menu
-            displayAlarm();
-            break;
-        }
-      }
-    }
-    else if (!menuActive) { //if menu is not active
-      updateDashboard();
-    }
-    displayHasChanged = false; // reset flag
-
-
-  }
-}
-
-/**
-   New display stuff goes here!
-*/
 
 /**
    Contains information to display on the LCD. Is put together before updating the screen and handed over to the LCDMenu library.
@@ -1074,4 +545,72 @@ struct displayData getDisplayData() {
   newData.chargeCurrent = chargeCurrent;
 
   return newData;
+}
+
+/**
+   Callback functions for menu
+*/
+
+void cb_refresh_data() {
+  lcdMenu.refreshData(getDisplayData());
+}
+
+void cb_dec_vol() {
+  decVol(1);
+}
+
+void cb_inc_vol() {
+  incVol(1);
+}
+
+void cb_enable_12v() {
+  // enable 12V converter
+}
+
+void cb_disable_12v() {
+  // disable 12V converter
+}
+
+void cb_set_source_bt() {
+  source = SOURCE_BLUETOOTH;
+}
+
+void cb_set_source_aux() {
+  source = SOURCE_AUX;
+}
+
+void cb_set_source_radio() {
+  source = SOURCE_RADIO;
+}
+
+void cb_set_source_rpi() {
+  source = SOURCE_RASPBERRY;
+}
+
+void cb_inc_radio_freq() {
+  // increase radio frequency
+}
+
+void cb_dec_radio_freq() {
+  // decrease radio frequency
+}
+
+void cb_set_led_s2l() {
+  // set LED mode to sound2light
+}
+
+void cb_set_led_off() {
+  // turn off LEDs
+}
+
+void cb_open_locker() {
+  // open locker routine
+}
+
+void cb_alarm_activate() {
+  // activate alarm
+}
+
+void registerMenuCallbacks() {
+  lcdMenu.registerCallbacks(&cb_refresh_data);
 }
