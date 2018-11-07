@@ -1,5 +1,5 @@
 /**
-   Schallfrosch OS by Simon Welzel on 2018/11/01.
+   Schallfrosch OS by Simon Welzel on 2018/11/06.
 
 */
 
@@ -11,6 +11,8 @@
 #include <Rotary.h> //http://www.buxtronix.net/2011/10/rotary-encoders-done-properly.html
 #include "LCDMenu.h"
 
+// version of this project
+const String schallfroschOS_version = "v0.2";
 
 /**
  * ************************************************
@@ -41,7 +43,8 @@ const long battery_refresh_timer_period = 10000;
 const long rfid_check_timer_period = 2000;
 
 
-const String arrow = " <-";
+
+
 
 
 /**
@@ -137,8 +140,6 @@ bool converter12v = false;
    ************************************************
 */
 
-
-
 /**
   ************************************************
    Timers
@@ -159,8 +160,6 @@ long volumeDisplayTimer = 0;
    End of timers
    ************************************************
 */
-
-
 
 /**
   ************************************************
@@ -222,31 +221,6 @@ LCDMenu lcdMenu = LCDMenu();
   ************************************************
 */
 
-/**
-  ************************************************
-   Variables for lcd menu
-   Top level menus:
-   Lautstaerke
-   Akku
-   Signalquelle
-   Beleuchtung
-   Schliessfach oeffnen
-   Alarm aktivieren
-*/
-int menPos[4] = {0, -1, -1, -1};
-
-bool menuActive = false; // Menu can be active or inactive
-const int menuCount = 6;
-const int subMenuCount = 4;
-int menuPosition = 0; // position in the top menu
-int subMenuPosition = -1; // position in the sub menu. If not in a sub menu, this is default to -1.
-bool displayHasChanged = false; // flag for a change in the menu
-
-/**
-   End of variables for lcd menu
-  ************************************************
-*/
-
 
 
 void setup() {
@@ -256,7 +230,7 @@ void setup() {
   Wire.begin(); // initialize I2C
   Serial.begin(115200); // serial output for debugging
   lcd.begin(); // initialize the LCD
-  lcdMenu.init(&lcd, &rotary);
+  lcdMenu.init(&lcd, &rotary, schallfroschOS_version);
 
 
   // rotary encoder setup
@@ -278,19 +252,13 @@ void setup() {
 
   
   
-  //print boot screen
-  lcd.setCursor(0, 0);
-  lcd.print("Schallfrosch OS");
-  lcd.setCursor(0, 1);
-  lcd.print("v0.1");
-  lcd.setCursor(0, 2);
-  lcd.print("von Simon Welzel");
+
 }
 
 
 void loop() {
   checkTimers(); // Check for timers that are due
-  lcdMenu.update();
+  lcdMenu.loop();
 }
 
 // handler for rotary encoder. TODO: Make nicer
@@ -519,7 +487,6 @@ void toggleOnboardLED() {
 */
 struct displayData
 {
-  int menPos[4];
   int batteryLevel; // battery level in percent
   float batteryVoltage; // battery voltage in Volts
   int volume; // volume
@@ -533,7 +500,6 @@ struct displayData
 
 struct displayData getDisplayData() {
   struct displayData newData;
-  memcpy(newData.menPos, menPos, 4);
   newData.batteryLevel = batteryLevel;
   newData.batteryVoltage = batteryVoltageAverage;
   newData.volume = volume;

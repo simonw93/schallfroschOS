@@ -17,18 +17,22 @@ const int encoderPinA = 18;   // right
 const int encoderPinB = 17;   // left
 const int encoderButton = 19; // switch
 
+String schallfroschOS_version;
+
 /**
- * Constants
- */
+   Constants
+*/
 
 const long menuScreensaver_period = 10000;
 
 // Value for how long the volume should be displayed
 const long volumeDisplay_period = 2000;
 
+const long displayRefreshTimer_period = 50;
+
 const int mainMenuSize = 15;
 // main menu entry names
-const String mainMenuEntries[mainMenuSize] = {
+String mainMenuEntries[mainMenuSize] = {
   "Lautstaerke",
   "Energiemodus",
   "Geraete",
@@ -48,7 +52,7 @@ const String mainMenuEntries[mainMenuSize] = {
 
 const int subMenuSizes[mainMenuSize] = {1, 2, 3, 4, 4, 3, 2, 1, 4, 1, 3, 3, 2, 2, 0};
 
-const String subMenuEntries[mainMenuSize][4] = {
+String subMenuEntries[mainMenuSize][4] = {
   {"Lautstaerke: "},
   {"Eco Modus", "SPL Modus"},
   {"12V: ", "USB-Lader: ", "Soundboard: "},
@@ -68,22 +72,33 @@ const String subMenuEntries[mainMenuSize][4] = {
 
 
 // character to indicate cursor position
-const uint8_t cross[8] = {0x0, 0x1b, 0xe, 0x4, 0xe, 0x1b, 0x0};
+uint8_t cross[8] = {0x0, 0x1b, 0xe, 0x4, 0xe, 0x1b, 0x0};
 
 /**
- * Timers
- */
+   Variables
+*/
+// if true, display content has changed and will be rewritten
+bool hasChanged = false;
+
+int menPos[4] = {0,-1,-1,-1};
+
+/**
+   Timers
+*/
 // When value is reached, display can be refreshed again
 long display_refresh_timer = 0;
 
 //When value is reached, go back to the dashboard
 long menuScreensaver = menuScreensaver_period;
 
+//Amount of milliseconds that the bootscreen will be displayed
+long bootScreenDuration = 3000;
+
 
 /**
- * Callback functions
- */
-  void (* menu_cb_refresh_data)();
+   Callback functions
+*/
+void (* menu_cb_refresh_data)();
 
 /**
    Enum definitions, struct definitions
@@ -106,7 +121,6 @@ enum signalSource {
 */
 struct displayData
 {
-  int menPos[4];
   int batteryLevel; // battery level in percent
   float batteryVoltage; // battery voltage in Volts
   int volume; // volume
@@ -133,22 +147,26 @@ Rotary *myRotary;
 LCDMenu::LCDMenu() {
 }
 
-void LCDMenu::init(LiquidCrystal_I2C *pLcd, Rotary *pRotary) {
+void LCDMenu::init(LiquidCrystal_I2C *pLcd, Rotary *pRotary, String pVersion) {
+  schallfroschOS_version = pVersion;
   myLcd = pLcd;
   myRotary = pRotary;
   myLcd->createChar(6, cross); // create cursor character
+  printBootScreen();
 }
 
 void LCDMenu::registerCallbacks(void (*refresh_data)()) {
   menu_cb_refresh_data = refresh_data;
 }
 
-void LCDMenu::update() {
+void LCDMenu::loop() {
   handleEncoder();
   checkEncoderButton();
 
-  if (millis() > display_refresh_timer) {
-    
+  if ((millis() > display_refresh_timer) && (millis() > bootScreenDuration) && hasChanged) {
+    updateDisplay();
+    hasChanged = false;
+    display_refresh_timer = millis() + displayRefreshTimer_period;
   }
 }
 
@@ -159,21 +177,24 @@ void LCDMenu::refreshData(struct displayData newData) {
   dData = newData;
 }
 
+void LCDMenu::setChanged() {
+  hasChanged = true;
+}
+
 void LCDMenu::updateDisplay() {
-  if (dData.menPos[1] == -1) { // menu is inactive -> screensaver mode
+  if (menPos[1] == -1) { // menu is inactive -> screensaver mode
     displayScreensaver();
   }
-  else if (dData.menPos[2] == -1) { //sub menu is inactive, but menu is active -> main menu
+  else if (menPos[2] == -1) { //sub menu is inactive, but menu is active -> main menu
     displayMainMenu();
   }
-  else if (dData.menPos[3] == -1) { // sub-submenu is inactive, but submenu is active -> submenu
+  else if (menPos[3] == -1) { // sub-submenu is inactive, but submenu is active -> submenu
     displaySubMenu();
   }
-
 }
 
 void LCDMenu::displayScreensaver() {
-  switch (dData.menPos[0]) { //
+  switch (menPos[0]) { //
     case 0:
       myLcd->setCursor(0, 0);
       myLcd->print("Screensaver 1");
@@ -187,7 +208,7 @@ void LCDMenu::displayScreensaver() {
    Displays the main menu.
 */
 void LCDMenu::displayMainMenu() {
-  int indexToDisplay = dData.menPos[1];
+  int indexToDisplay = menPos[1];
   myLcd->setCursor(0, 0); // print cursor
   myLcd->print("#"); // TODO: change this to the cursor character
   for (int i = 0; i < 4; i++) { //display four entries
@@ -217,25 +238,25 @@ void LCDMenu::displaySubMenu() {
     subMenuEntries[10][0] = "WiFi Einsch.";
   }
 
-  int indexToDisplay = dData.menPos[2];
+  int indexToDisplay = menPos[2];
   //myLcd->setCursor(0, 0); // print cursor
   //myLcd->print("#"); // TODO: change this to the cursor character
-  if (subMenuSizes[dData.menPos[1]] >= 4) {
+  if (subMenuSizes[menPos[1]] >= 4) {
     myLcd->setCursor(0, 0); // print cursor
     myLcd->print("#"); // TODO: change this to the cursor character
     for (int i = 0; i < 4; i++) { //display four entries
       myLcd->setCursor(1, i);
-      myLcd->print(subMenuEntries[dData.menPos[1]][(indexToDisplay + i) % subMenuSizes[dData.menPos[1]]]);
+      myLcd->print(subMenuEntries[menPos[1]][(indexToDisplay + i) % subMenuSizes[menPos[1]]]);
     }
   }
-  else if (subMenuSizes[dData.menPos[1]] > 0) {
-    for (int i = 0; i < subMenuSizes[dData.menPos[1]]; i++) {
+  else if (subMenuSizes[menPos[1]] > 0) {
+    for (int i = 0; i < subMenuSizes[menPos[1]]; i++) {
       if (i == indexToDisplay) {
         myLcd->setCursor(0, 0); // print cursor
         myLcd->print("#"); // TODO: change this to the cursor character
       }
       myLcd->setCursor(1, i);
-      myLcd->print(subMenuEntries[dData.menPos[1]][i]);
+      myLcd->print(subMenuEntries[menPos[1]][i]);
     }
   }
   else {
@@ -243,9 +264,18 @@ void LCDMenu::displaySubMenu() {
   }
 }
 
+void LCDMenu::printBootScreen() {
+  myLcd->setCursor(0, 0);
+  myLcd->print("Schallfrosch OS");
+  myLcd->setCursor(0, 1);
+  myLcd->print(schallfroschOS_version);
+  myLcd->setCursor(0, 2);
+  myLcd->print("von Simon Welzel");
+}
+
 /**
- * Rotary encoder section
- */
+   Rotary encoder section
+*/
 
 void LCDMenu::handleShortPress() {
   // handle short press

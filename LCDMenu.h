@@ -9,12 +9,14 @@ class LCDMenu
 {
   public:
     LCDMenu();
-    void init(LiquidCrystal_I2C *pLcd, Rotary *pRotary);
+    void init(LiquidCrystal_I2C *pLcd, Rotary *pRotary, String pVersion);
     void refreshData(struct displayData newData);
+    void setChanged();
     void updateDisplay();
-    void update();
+    void loop();
     void rotate();
     void registerCallbacks(void (*refresh_data)());
+    void printBootScreen();
 
   private:
     void displayScreensaver();
