@@ -28,7 +28,7 @@ const long menuScreensaver_period = 10000;
 // Value for how long the volume should be displayed
 const long volumeDisplay_period = 2000;
 
-const long displayRefreshTimer_period = 50;
+const long displayRefreshTimer_period = 100;
 
 const int mainMenuSize = 15;
 // main menu entry names
@@ -50,7 +50,8 @@ String mainMenuEntries[mainMenuSize] = {
   "Sperren"
 };
 
-const int subMenuSizes[mainMenuSize] = {1, 2, 3, 4, 4, 3, 2, 1, 4, 1, 3, 3, 2, 2, 0};
+const int subMenuSizes[mainMenuSize] = {1, 2, 3, 4, 4, 2, 2, 1, 4, 1, 3, 3, 2, 2, 0};
+bool entryClicked = false; // true if a submenu entry has been clicked
 
 String subMenuEntries[mainMenuSize][4] = {
   {"Lautstaerke: "},
@@ -58,7 +59,7 @@ String subMenuEntries[mainMenuSize][4] = {
   {"12V: ", "USB-Lader: ", "Soundboard: "},
   {"Ladestand: ", "Rest: ", "", "Statistik"}, // [3][2] wird geladen/-
   {"Bluetooth", "AUX", "Radio", "Raspberry"},
-  {"Frequenz: ", "F. aendern", "Senderliste"},
+  {"Frequenz: ", "Senderliste"},
   {"", "Modus"}, // [6][0] Beleuchtung an/aus
   {"Fach oeffnen"},
   {"Bewegungsalarm", "Standortalarm", "Deaktivieren", "Einstellungen"},
@@ -80,7 +81,8 @@ uint8_t cross[8] = {0x0, 0x1b, 0xe, 0x4, 0xe, 0x1b, 0x0};
 // if true, display content has changed and will be rewritten
 bool hasChanged = false;
 
-int menPos[4] = {0,-1,-1,-1};
+
+int menPos[3] = {0, -1, -1};
 
 /**
    Timers
@@ -99,6 +101,9 @@ long bootScreenDuration = 3000;
    Callback functions
 */
 void (* menu_cb_refresh_data)();
+void (* menu_cb_dec_vol)();
+void (* menu_cb_inc_vol)();
+
 
 /**
    Enum definitions, struct definitions
@@ -155,8 +160,11 @@ void LCDMenu::init(LiquidCrystal_I2C *pLcd, Rotary *pRotary, String pVersion) {
   printBootScreen();
 }
 
-void LCDMenu::registerCallbacks(void (*refresh_data)()) {
+void LCDMenu::registerCallbacks(void (*refresh_data)(), void (*dec_vol)(), void (*inc_vol)()) {
   menu_cb_refresh_data = refresh_data;
+  menu_cb_dec_vol = dec_vol;
+  menu_cb_inc_vol = inc_vol;
+
 }
 
 void LCDMenu::loop() {
@@ -182,13 +190,14 @@ void LCDMenu::setChanged() {
 }
 
 void LCDMenu::updateDisplay() {
+  myLcd->clear();
   if (menPos[1] == -1) { // menu is inactive -> screensaver mode
     displayScreensaver();
   }
   else if (menPos[2] == -1) { //sub menu is inactive, but menu is active -> main menu
     displayMainMenu();
   }
-  else if (menPos[3] == -1) { // sub-submenu is inactive, but submenu is active -> submenu
+  else { //  -> submenu
     displaySubMenu();
   }
 }
@@ -219,6 +228,7 @@ void LCDMenu::displayMainMenu() {
 
 void LCDMenu::displaySubMenu() {
   // Set variable menu content
+
   if (dData.charging) { // Laden
     subMenuEntries[3][2] = "Wird geladen";
   }
@@ -239,11 +249,17 @@ void LCDMenu::displaySubMenu() {
   }
 
   int indexToDisplay = menPos[2];
+
+  String cursorChar = "#";
+  if (entryClicked) {
+    cursorChar = ">";
+  }
+
   //myLcd->setCursor(0, 0); // print cursor
   //myLcd->print("#"); // TODO: change this to the cursor character
   if (subMenuSizes[menPos[1]] >= 4) {
     myLcd->setCursor(0, 0); // print cursor
-    myLcd->print("#"); // TODO: change this to the cursor character
+    myLcd->print(cursorChar); // TODO: change this to the cursor character
     for (int i = 0; i < 4; i++) { //display four entries
       myLcd->setCursor(1, i);
       myLcd->print(subMenuEntries[menPos[1]][(indexToDisplay + i) % subMenuSizes[menPos[1]]]);
@@ -252,8 +268,8 @@ void LCDMenu::displaySubMenu() {
   else if (subMenuSizes[menPos[1]] > 0) {
     for (int i = 0; i < subMenuSizes[menPos[1]]; i++) {
       if (i == indexToDisplay) {
-        myLcd->setCursor(0, 0); // print cursor
-        myLcd->print("#"); // TODO: change this to the cursor character
+        myLcd->setCursor(0, i); // print cursor
+        myLcd->print(cursorChar); // TODO: change this to the cursor character
       }
       myLcd->setCursor(1, i);
       myLcd->print(subMenuEntries[menPos[1]][i]);
@@ -278,19 +294,169 @@ void LCDMenu::printBootScreen() {
 */
 
 void LCDMenu::handleShortPress() {
-  // handle short press
+  if (menPos[1] == -1) { // menu is inactive -> screensaver mode
+    menPos[1] = 0;
+    menPos[0] = -1;
+    setChanged();
+  }
+  else if (menPos[2] == -1) { //sub menu is inactive, but menu is active -> main menu
+    if (subMenuSizes[menPos[1]] > 0) { // check if submenu can be displayed
+      menPos[2] = 0;
+      setChanged();
+    }
+    else { // main menu
+      switch (menPos[1]) {
+        case 14:
+          //lock system
+          //setChanged();
+          break;
+        default:
+          break;
+      }
+    }
+  }
+  else { // -> submenu
+    // handle sub menu function calls
+    /**
+       "Lautstaerke",
+      "Energiemodus",
+      "Geraete",
+      "Akku",
+      "Signalquelle",
+      "Radio",
+      "Beleuchtung",
+      "Schliessfach",
+      "Alarm",
+      "DSP",
+      "WiFi",
+      "Berechtigungen",
+      "Debug",
+      "Administration",
+      "Sperren"
+    */
+    switch (menPos[1]) {
+      case 1: // Energy
+        switch (menPos[2]) {
+          case 0:
+            // go into eco mode
+            break;
+          case 1:
+            // go into spl mode
+            break;
+        }
+        break;
+      case 2: // Devices
+        switch (menPos[2]) {
+          case 0:
+            // toggle 12V
+            break;
+          case 1:
+            // toggle USB charger
+            break;
+          case 2:
+            // toggle soundboard
+            break;
+        }
+        break;
+      case 3: // Battery
+        if (menPos[2] == 2) {
+          // show statistics
+        }
+        break;
+      case 4: // Signal source
+        switch (menPos[2]) {
+          case 0:
+            //switch to bluetooth
+            break;
+          case 1:
+            //switch to AUX
+            break;
+          case 2:
+            //switch to radio
+            break;
+          case 3:
+            //switch to raspberry
+            break;
+        }
+        break;
+      case 5: // Radio
+        switch (menPos[2]) {
+          case 0:
+            entryClicked = true;
+            break;
+        }
+        break;
+      case 6: // Lighting
+        break;
+      case 7: // Locker
+        break;
+      case 8: // Alarm
+        break;
+      case 9: // DSP
+        break;
+      case 10: // WiFi
+        break;
+      case 11: // Berechtigungen
+        break;
+      case 12: // Debug
+        break;
+      case 13: // Admin
+        break;
+      default:
+        break;
+    }
+    //setChanged();
+  }
 }
 
 void LCDMenu::handleLongPress() {
-  // handle long press
+  if (entryClicked) {
+    entryClicked = false;
+  }
+  else if (menPos[1] >= 0 && menPos[2] == -1) { // menu is active
+    menPos[1] = -1;
+    menPos[0] = 0;
+    setChanged();
+  }
+  else if (menPos[2] >= 0) { // sub menu is active
+    menPos[2] = -1;
+    setChanged();
+  }
 }
 
 void LCDMenu::handleLeft() {
-  // handle left
+  if (entryClicked) {
+    if (menPos[1] == 5) { //radio frequency menu
+      //decrease frequency
+    }
+  }
+  else if (menPos[1] <= 1) { // volume change
+    (*menu_cb_dec_vol)();
+    (*menu_cb_refresh_data)();
+    setChanged();
+  }
+  else {
+    decMenu();
+    setChanged();
+  }
+
 }
 
 void LCDMenu::handleRight() {
-  // handle right
+  if (entryClicked) {
+    if (menPos[1] == 5) { //radio frequency menu
+      //increase frequency
+    }
+  }
+  else if (menPos[1] <= 1) { // volume change
+    (*menu_cb_inc_vol)();
+    (*menu_cb_refresh_data)();
+    setChanged();
+  }
+  else {
+    incMenu();
+    setChanged();
+  }
 }
 
 void LCDMenu::handleEncoder() {
@@ -335,5 +501,35 @@ void LCDMenu::rotate() {
     encoderCount++;
   } else if (result == DIR_CW) {
     encoderCount--;
+  }
+}
+
+void LCDMenu::decMenu() {
+  if (menPos[1] >= 0 && menPos[2] == -1) { // menu is active
+    menPos[1] -= 1;
+    if (menPos[1] < 0) {
+      menPos[1] = mainMenuSize - 1; // reset position marker
+    }
+  }
+  else if (menPos[2] >= 0) { // sub menu is active
+    menPos[2] -= 1;
+    if (menPos[2] < 0) {
+      menPos[2] = subMenuSizes[menPos[1]] - 1; // reset position marker
+    }
+  }
+}
+
+void LCDMenu::incMenu() {
+  if (menPos[1] >= 0 && menPos[2] == -1) { // menu is active
+    menPos[1] += 1;
+    if (menPos[1] >=  mainMenuSize) {
+      menPos[1] = 0; // reset position marker
+    }
+  }
+  else if (menPos[2] >= 0) { // sub menu is active
+    menPos[2] += 1;
+    if (menPos[2] >=  subMenuSizes[menPos[1]]) {
+      menPos[2] = 0; // reset position marker
+    }
   }
 }

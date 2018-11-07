@@ -250,8 +250,8 @@ void setup() {
 
   // LCD
 
-  
-  
+
+
 
 }
 
@@ -259,16 +259,13 @@ void setup() {
 void loop() {
   checkTimers(); // Check for timers that are due
   lcdMenu.loop();
+  toggleOnboardLED();
 }
 
 // handler for rotary encoder. TODO: Make nicer
 void encoderRotate() {
   lcdMenu.rotate();
 }
-
-
-
-
 
 /**
    Initialize battery level array.
@@ -477,9 +474,14 @@ void decVol(int val) {
   }
 }
 
+long onboardLedTimer = 0;
 void toggleOnboardLED() {
-  onboardLedState = !onboardLedState;
-  digitalWrite(onboardLED, onboardLedState);
+  if (millis() > onboardLedTimer) {
+    onboardLedState = !onboardLedState;
+    digitalWrite(onboardLED, onboardLedState);
+    onboardLedTimer = millis() + 1000;
+  }
+
 }
 
 /**
@@ -578,5 +580,5 @@ void cb_alarm_activate() {
 }
 
 void registerMenuCallbacks() {
-  lcdMenu.registerCallbacks(&cb_refresh_data);
+  lcdMenu.registerCallbacks(&cb_refresh_data, &cb_dec_vol, &cb_inc_vol);
 }

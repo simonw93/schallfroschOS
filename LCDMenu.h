@@ -15,7 +15,7 @@ class LCDMenu
     void updateDisplay();
     void loop();
     void rotate();
-    void registerCallbacks(void (*refresh_data)());
+    void registerCallbacks(void (*refresh_data)(), void (*dec_vol)(), void (*inc_vol)());
     void printBootScreen();
 
   private:
@@ -28,6 +28,8 @@ class LCDMenu
     void handleLongPress();
     void handleLeft();
     void handleRight();
+    void decMenu();
+    void incMenu();
 };
 
 
