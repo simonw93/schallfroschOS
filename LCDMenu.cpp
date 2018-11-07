@@ -430,9 +430,9 @@ void LCDMenu::handleLeft() {
       //decrease frequency
     }
   }
-  else if (menPos[1] <= 1) { // volume change
-    (*menu_cb_dec_vol)();
-    (*menu_cb_refresh_data)();
+  else if (menPos[1] == -1 || (menPos[1] == 0 && menPos[2] == 0)) { // volume change
+    //(*menu_cb_dec_vol)();
+    //(*menu_cb_refresh_data)();
     setChanged();
   }
   else {
@@ -448,9 +448,9 @@ void LCDMenu::handleRight() {
       //increase frequency
     }
   }
-  else if (menPos[1] <= 1) { // volume change
-    (*menu_cb_inc_vol)();
-    (*menu_cb_refresh_data)();
+  else if (menPos[1] == -1 || (menPos[1] == 0 && menPos[2] == 0)) { // volume change
+    //(*menu_cb_inc_vol)();
+    //(*menu_cb_refresh_data)();
     setChanged();
   }
   else {
