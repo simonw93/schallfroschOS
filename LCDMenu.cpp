@@ -2,6 +2,7 @@
 #include <LiquidCrystal_I2C.h>
 #include <Rotary.h> //http://www.buxtronix.net/2011/10/rotary-encoders-done-properly.html
 #include <Arduino.h>
+#include "Constants.h"
 
 /**
    Rotary encoder variables
@@ -17,18 +18,10 @@ const int encoderPinA = 18;   // right
 const int encoderPinB = 17;   // left
 const int encoderButton = 19; // switch
 
-String schallfroschOS_version;
 
 /**
    Constants
 */
-
-const long menuScreensaver_period = 10000;
-
-// Value for how long the volume should be displayed
-const long volumeDisplay_period = 2000;
-
-const long displayRefreshTimer_period = 100;
 
 const int mainMenuSize = 15;
 // main menu entry names
@@ -51,7 +44,6 @@ String mainMenuEntries[mainMenuSize] = {
 };
 
 const int subMenuSizes[mainMenuSize] = {1, 2, 3, 4, 4, 2, 2, 1, 4, 1, 3, 3, 2, 2, 0};
-bool entryClicked = false; // true if a submenu entry has been clicked
 
 String subMenuEntries[mainMenuSize][4] = {
   {"Lautstaerke: "},
@@ -81,6 +73,11 @@ uint8_t cross[8] = {0x0, 0x1b, 0xe, 0x4, 0xe, 0x1b, 0x0};
 // if true, display content has changed and will be rewritten
 bool hasChanged = false;
 
+// true if display is on
+bool displayActive = false;
+
+// true if a submenu entry has been clicked
+bool entryClicked = false;
 
 int menPos[3] = {0, -1, -1};
 
@@ -91,18 +88,14 @@ int menPos[3] = {0, -1, -1};
 long display_refresh_timer = 0;
 
 //When value is reached, go back to the dashboard
-long menuScreensaver = menuScreensaver_period;
+long menuScreensaver = Constants::MENU_SCREENSAVER_RESET;
 
-//Amount of milliseconds that the bootscreen will be displayed
-long bootScreenDuration = 3000;
+// When value is reached, turn off display
+long display_on_timer = Constants::DISPLAY_ON_TIMER_RESET;
 
+// When value is reached, display is no longer locked to displaying volume
+long volumeDisplayTimer = 0;
 
-/**
-   Callback functions
-*/
-void (* menu_cb_refresh_data)();
-void (* menu_cb_dec_vol)();
-void (* menu_cb_inc_vol)();
 
 
 /**
@@ -122,27 +115,8 @@ enum signalSource {
 };
 
 /**
-    Contains information to display on the LCD. Is put together before updating the screen and handed over to the LCDMenu library.
-*/
-struct displayData
-{
-  int batteryLevel; // battery level in percent
-  float batteryVoltage; // battery voltage in Volts
-  int volume; // volume
-  signalSource source; // signal source
-  bool alarm; // true if alarm is active
-  chargeMode currentChargeMode; // charge mode
-  bool charging; // true if charging
-  bool chargerConnected; // true if charger is connected
-  int chargeCurrent; // charge current in mA
-};
-
-
-
-/**
    Variables, constants and timers
 */
-struct displayData dData; // stores the latest received displayData
 LiquidCrystal_I2C *myLcd;
 Rotary *myRotary;
 
@@ -152,37 +126,23 @@ Rotary *myRotary;
 LCDMenu::LCDMenu() {
 }
 
-void LCDMenu::init(LiquidCrystal_I2C *pLcd, Rotary *pRotary, String pVersion) {
-  schallfroschOS_version = pVersion;
+void LCDMenu::init(LiquidCrystal_I2C *pLcd, Rotary *pRotary) {
   myLcd = pLcd;
   myRotary = pRotary;
   myLcd->createChar(6, cross); // create cursor character
   printBootScreen();
 }
 
-void LCDMenu::registerCallbacks(void (*refresh_data)(), void (*dec_vol)(), void (*inc_vol)()) {
-  menu_cb_refresh_data = refresh_data;
-  menu_cb_dec_vol = dec_vol;
-  menu_cb_inc_vol = inc_vol;
-
-}
 
 void LCDMenu::loop() {
   handleEncoder();
   checkEncoderButton();
 
-  if ((millis() > display_refresh_timer) && (millis() > bootScreenDuration) && hasChanged) {
+  if ((millis() > display_refresh_timer) && (millis() > Constants::BOOT_SCREEN_DURATION) && hasChanged) {
     updateDisplay();
     hasChanged = false;
-    display_refresh_timer = millis() + displayRefreshTimer_period;
+    display_refresh_timer = millis() + Constants::DISPLAY_REFRESH_RESET;
   }
-}
-
-/**
-   Refresh the stored displayData.
-*/
-void LCDMenu::refreshData(struct displayData newData) {
-  dData = newData;
 }
 
 void LCDMenu::setChanged() {
@@ -229,7 +189,7 @@ void LCDMenu::displayMainMenu() {
 void LCDMenu::displaySubMenu() {
   // Set variable menu content
 
-  if (dData.charging) { // Laden
+  if (false) { // Laden
     subMenuEntries[3][2] = "Wird geladen";
   }
   else {
@@ -284,7 +244,7 @@ void LCDMenu::printBootScreen() {
   myLcd->setCursor(0, 0);
   myLcd->print("Schallfrosch OS");
   myLcd->setCursor(0, 1);
-  myLcd->print(schallfroschOS_version);
+  myLcd->print(Constants::SCHALLFROSCH_VERSION);
   myLcd->setCursor(0, 2);
   myLcd->print("von Simon Welzel");
 }
@@ -531,5 +491,23 @@ void LCDMenu::incMenu() {
     if (menPos[2] >=  subMenuSizes[menPos[1]]) {
       menPos[2] = 0; // reset position marker
     }
+  }
+}
+
+/**
+   Turn display on or off.
+*/
+void LCDMenu::switchDisplay(bool value) {
+  if (value && !displayActive) {
+    displayActive = true;
+    myLcd->backlight();
+    display_on_timer = millis() + Constants::DISPLAY_ON_TIMER_RESET;
+    // Turn on display
+  }
+  else if (!value && displayActive) {
+    displayActive = false;
+    display_on_timer = 0;
+    myLcd->noBacklight();
+    // turn off display
   }
 }

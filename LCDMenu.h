@@ -4,18 +4,18 @@
 #include "Arduino.h"
 #include <LiquidCrystal_I2C.h>
 #include <Rotary.h> //http://www.buxtronix.net/2011/10/rotary-encoders-done-properly.html
+#include "Constants.h"
 
 class LCDMenu
 {
   public:
     LCDMenu();
-    void init(LiquidCrystal_I2C *pLcd, Rotary *pRotary, String pVersion);
+    void init(LiquidCrystal_I2C *pLcd, Rotary *pRotary);
     void refreshData(struct displayData newData);
     void setChanged();
     void updateDisplay();
     void loop();
     void rotate();
-    void registerCallbacks(void (*refresh_data)(), void (*dec_vol)(), void (*inc_vol)());
     void printBootScreen();
 
   private:
@@ -30,6 +30,7 @@ class LCDMenu
     void handleRight();
     void decMenu();
     void incMenu();
+    void switchDisplay(bool value);
 };
 
 
