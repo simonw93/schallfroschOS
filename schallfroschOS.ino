@@ -65,11 +65,12 @@ void setup() {
 
 }
 
-
+/**
+   Main loop is repeated endlessly.
+*/
 void loop() {
-  sfBackend.loop();
-  lcdMenu.loop();
-
+  sfBackend.loop(); // backend routine
+  lcdMenu.loop();   // lcd routine
 }
 
 // handler for rotary encoder. TODO: Make nicer

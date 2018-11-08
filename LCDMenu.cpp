@@ -123,12 +123,15 @@ LiquidCrystal_I2C *myLcd;
 Rotary *myRotary;
 SchallfroschBackend *sf;
 
-
-
-
+/**
+ * Empty constructor.
+ */
 LCDMenu::LCDMenu() {
 }
 
+/**
+ * Initialize the lcd menu. Sets pointers to instances of necessary libraries. Call this once after creating an instance in the main sketch!
+ */
 void LCDMenu::init(LiquidCrystal_I2C *pLcd, Rotary *pRotary, SchallfroschBackend *pSf) {
   myLcd = pLcd;
   myRotary = pRotary;
@@ -137,10 +140,15 @@ void LCDMenu::init(LiquidCrystal_I2C *pLcd, Rotary *pRotary, SchallfroschBackend
   printBootScreen();
 }
 
-
+/**
+ * Call this frequently. Does all the necessary display tasks.
+ */
 void LCDMenu::loop() {
   handleEncoder();
   checkEncoderButton();
+  if (sf->getNotify()) {
+    setChanged();
+  }
 
   if ((millis() > display_refresh_timer) && (millis() > Constants::BOOT_SCREEN_DURATION) && hasChanged) {
     updateDisplay();
@@ -149,10 +157,16 @@ void LCDMenu::loop() {
   }
 }
 
+/**
+ * Call this whenever display data has been changed.
+ */
 void LCDMenu::setChanged() {
   hasChanged = true;
 }
 
+/**
+ * Updates the display.
+ */
 void LCDMenu::updateDisplay() {
   myLcd->clear();
   if (menPos[1] == -1) { // menu is inactive -> screensaver mode
@@ -166,6 +180,9 @@ void LCDMenu::updateDisplay() {
   }
 }
 
+/**
+ * Displays the screensaver.
+ */
 void LCDMenu::displayScreensaver() {
   switch (menPos[0]) { //
     case 0:

@@ -102,7 +102,7 @@ void SchallfroschBackend::init() {
 
 void SchallfroschBackend::loop() {
   checkTimers(); // Check for timers that are due
-  toggleOnboardLED();
+  toggleOnboardLED(); // Toogle LED to indicate that the board is not stuck/ crashed
 }
 
 /**
