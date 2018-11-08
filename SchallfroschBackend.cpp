@@ -305,58 +305,48 @@ void SchallfroschBackend::toggleOnboardLED() {
 */
 
 
-void SchallfroschBackend::cb_dec_vol() {
-  decVol(1);
-}
 
-void SchallfroschBackend::cb_inc_vol() {
-  incVol(1);
-}
 
-void SchallfroschBackend::cb_enable_12v() {
+void SchallfroschBackend::enable12v() {
   // enable 12V converter
 }
 
-void SchallfroschBackend::cb_disable_12v() {
+void SchallfroschBackend::disable12v() {
   // disable 12V converter
 }
 
-void SchallfroschBackend::cb_set_source_bt() {
+void SchallfroschBackend::setSourceBluetooth() {
   source = SOURCE_BLUETOOTH;
 }
 
-void SchallfroschBackend::cb_set_source_aux() {
+void SchallfroschBackend::setSourceAux() {
   source = SOURCE_AUX;
 }
 
-void SchallfroschBackend::cb_set_source_radio() {
+void SchallfroschBackend::setSourceRadio() {
   source = SOURCE_RADIO;
 }
 
-void SchallfroschBackend::cb_set_source_rpi() {
+void SchallfroschBackend::setSourcePi() {
   source = SOURCE_RASPBERRY;
 }
 
-void SchallfroschBackend::cb_inc_radio_freq() {
+void SchallfroschBackend::incFreq() {
   // increase radio frequency
 }
 
-void SchallfroschBackend::cb_dec_radio_freq() {
+void SchallfroschBackend::decFreq() {
   // decrease radio frequency
 }
 
-void SchallfroschBackend::cb_set_led_s2l() {
+void SchallfroschBackend::setLedS2L() {
   // set LED mode to sound2light
 }
 
-void SchallfroschBackend::cb_set_led_off() {
+void SchallfroschBackend::turnOffLed() {
   // turn off LEDs
 }
 
-void SchallfroschBackend::cb_open_locker() {
-  // open locker routine
-}
-
-void SchallfroschBackend::cb_alarm_activate() {
+void SchallfroschBackend::activateAlarm() {
   // activate alarm
 }
