@@ -68,6 +68,8 @@ bool soundsystem_state = false;
 // Volume from 0 to 100
 int volume = 0;
 
+// frequency of the radio module
+float freq = Constants::RADIO_FREQ_BEGIN;
 
 
 // Saves the state of the 12V converter. True if on.
@@ -348,11 +350,17 @@ void SchallfroschBackend::setSourcePi() {
 }
 
 void SchallfroschBackend::incFreq() {
-  // increase radio frequency
+  freq += 0.1;
+  if (freq > Constants::RADIO_FREQ_MAX) {
+    freq = Constants::RADIO_FREQ_MIN;
+  }
 }
 
 void SchallfroschBackend::decFreq() {
-  // decrease radio frequency
+  freq -= 0.1;
+  if (freq < Constants::RADIO_FREQ_MIN) {
+    freq = Constants::RADIO_FREQ_MAX;
+  }
 }
 
 void SchallfroschBackend::setLedS2L() {

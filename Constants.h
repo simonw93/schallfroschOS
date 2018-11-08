@@ -26,6 +26,11 @@ class Constants {
     static const long BATTERY_REFRESH_TIMER_RESET;
     static const long RFID_CHECK_TIMER_RESET;
     static const long BOOT_SCREEN_DURATION;
+
+    static const float RADIO_FREQ_MIN;
+    static const float RADIO_FREQ_MAX;
+    static const float RADIO_FREQ_BEGIN;
+    
     
 
   private:

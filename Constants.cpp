@@ -71,3 +71,10 @@ const int Constants::ENCODER_BUTTON = 19; // switch
 // middle pin is connected to ground
 
 const int Constants::ONBOARD_LED = 2;
+
+// Minimum and maximum radio frequencies
+const float Constants::RADIO_FREQ_MIN = 80.0;
+const float Constants::RADIO_FREQ_MAX = 110.0;
+
+// Radio frequency when system is booted
+const float Constants::RADIO_FREQ_BEGIN = 105.5;
