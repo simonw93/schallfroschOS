@@ -42,21 +42,23 @@ SchallfroschBackend sfBackend = SchallfroschBackend();
 
 
 void setup() {
+  // PIN MODE SETUP
+  pinMode(Constants::ONBOARD_LED, OUTPUT); // set onboard LED pin to output
 
-  pinMode(Constants::ONBOARD_LED, OUTPUT);
-
+  // INITIALIZATIONS
   Wire.begin(); // initialize I2C
   Serial.begin(115200); // serial output for debugging
   lcd.begin(); // initialize the LCD
   lcdMenu.init(&lcd, &rotary, &sfBackend);
 
 
-  // rotary encoder setup
+  // ROTARY ENCODER SETUP
   pinMode(Constants::ENCODER_PIN_A, INPUT_PULLUP);
   pinMode(Constants::ENCODER_PIN_B, INPUT_PULLUP);
   pinMode(Constants::ENCODER_BUTTON, INPUT_PULLUP);
   attachInterrupt(Constants::ENCODER_PIN_A, encoderRotate, CHANGE);
   attachInterrupt(Constants::ENCODER_PIN_B, encoderRotate, CHANGE);
+
   // RFID522
   //SPI.begin();
   //mfrc522.PCD_Init();
@@ -65,9 +67,9 @@ void setup() {
 
 
 void loop() {
-  //checkTimers(); // Check for timers that are due
+  sfBackend.loop();
   lcdMenu.loop();
-  
+
 }
 
 // handler for rotary encoder. TODO: Make nicer

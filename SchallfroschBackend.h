@@ -8,6 +8,7 @@ class SchallfroschBackend {
     SchallfroschBackend();
     void init();
     void loop();
+    bool getNotify();
     void openLocker();
     bool isCharging();
     void incVol(int val);

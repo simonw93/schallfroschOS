@@ -27,6 +27,10 @@ static const int BATTERY_ARRAY_SIZE = 50;
 /**
    Variables for saving states/ values.
 */
+
+// true if observers are supposed to be notfied about changes
+bool notify = false;
+
 // True if the alarm is active.
 bool alarm_active;
 
@@ -97,7 +101,17 @@ void SchallfroschBackend::init() {
 }
 
 void SchallfroschBackend::loop() {
+  checkTimers(); // Check for timers that are due
   toggleOnboardLED();
+}
+
+/**
+   Return true if data has changed, then reset notify flag
+*/
+bool SchallfroschBackend::getNotify() {
+  bool oldNotify = notify;
+  notify = false;
+  return oldNotify;
 }
 
 /**
