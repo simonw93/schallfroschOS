@@ -305,7 +305,9 @@ void SchallfroschBackend::toggleOnboardLED() {
 */
 
 
-
+bool SchallfroschBackend::isCharging() {
+  return charging;
+}
 
 void SchallfroschBackend::enable12v() {
   // enable 12V converter

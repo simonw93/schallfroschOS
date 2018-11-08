@@ -9,6 +9,7 @@ class SchallfroschBackend {
     void init();
     void loop();
     void openLocker();
+    bool isCharging();
     void incVol(int val);
     void decVol(int val);
     void enable12v();

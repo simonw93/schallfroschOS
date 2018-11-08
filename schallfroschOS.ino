@@ -31,7 +31,7 @@ Rotary rotary = Rotary(Constants::ENCODER_PIN_A, Constants::ENCODER_PIN_B);
 
 LCDMenu lcdMenu = LCDMenu();
 
-SchallfroschBackend backend = SchallfroschBackend();
+SchallfroschBackend sfBackend = SchallfroschBackend();
 
 
 /**
@@ -48,7 +48,7 @@ void setup() {
   Wire.begin(); // initialize I2C
   Serial.begin(115200); // serial output for debugging
   lcd.begin(); // initialize the LCD
-  lcdMenu.init(&lcd, &rotary);
+  lcdMenu.init(&lcd, &rotary, &sfBackend);
 
 
   // rotary encoder setup

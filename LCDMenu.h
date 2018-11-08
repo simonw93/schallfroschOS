@@ -5,12 +5,13 @@
 #include <LiquidCrystal_I2C.h>
 #include <Rotary.h> //http://www.buxtronix.net/2011/10/rotary-encoders-done-properly.html
 #include "Constants.h"
+#include "SchallfroschBackend.h"
 
 class LCDMenu
 {
   public:
     LCDMenu();
-    void init(LiquidCrystal_I2C *pLcd, Rotary *pRotary);
+    void init(LiquidCrystal_I2C *pLcd, Rotary *pRotary, SchallfroschBackend *pSf);
     void refreshData(struct displayData newData);
     void setChanged();
     void updateDisplay();

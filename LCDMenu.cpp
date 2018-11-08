@@ -3,6 +3,7 @@
 #include <Rotary.h> //http://www.buxtronix.net/2011/10/rotary-encoders-done-properly.html
 #include <Arduino.h>
 #include "Constants.h"
+#include "SchallfroschBackend.h"
 
 /**
    Rotary encoder variables
@@ -79,6 +80,7 @@ bool displayActive = false;
 // true if a submenu entry has been clicked
 bool entryClicked = false;
 
+// saves the menu position.
 int menPos[3] = {0, -1, -1};
 
 /**
@@ -119,6 +121,7 @@ enum signalSource {
 */
 LiquidCrystal_I2C *myLcd;
 Rotary *myRotary;
+SchallfroschBackend *sf;
 
 
 
@@ -126,9 +129,10 @@ Rotary *myRotary;
 LCDMenu::LCDMenu() {
 }
 
-void LCDMenu::init(LiquidCrystal_I2C *pLcd, Rotary *pRotary) {
+void LCDMenu::init(LiquidCrystal_I2C *pLcd, Rotary *pRotary, SchallfroschBackend *pSf) {
   myLcd = pLcd;
   myRotary = pRotary;
+  sf = pSf;
   myLcd->createChar(6, cross); // create cursor character
   printBootScreen();
 }
@@ -185,11 +189,13 @@ void LCDMenu::displayMainMenu() {
     myLcd->print(mainMenuEntries[(indexToDisplay + i) % mainMenuSize]);
   }
 }
-
+/**
+ * TODO: Concatenate battery level string with battery value!
+ */
 void LCDMenu::displaySubMenu() {
   // Set variable menu content
 
-  if (false) { // Laden
+  if (sf->isCharging()) { // Laden
     subMenuEntries[3][2] = "Wird geladen";
   }
   else {
