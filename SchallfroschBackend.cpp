@@ -1,6 +1,7 @@
 #include "Arduino.h"
 #include "SchallfroschBackend.h"
 #include "Constants.h"
+#include <TEA5767Radio.h>
 
 /**
   ************************************************
@@ -90,16 +91,18 @@ long onboardLedTimer = 0;
 
 
 
-
+TEA5767Radio *myRadio;
 
 
 SchallfroschBackend::SchallfroschBackend() {
 
 }
 
-void SchallfroschBackend::init() {
+void SchallfroschBackend::init(TEA5767Radio *pRadio) {
   initializeBatteryValues(measureBatteryVoltage(Constants::BATTERY_VOLTAGE_ITERATIONS)); //initialize the battery values
   updateBattery(); // call updateBattery() to initialize all values
+  myRadio = pRadio;
+  myRadio->setFrequency(Constants::RADIO_FREQ_BEGIN);
 }
 
 void SchallfroschBackend::loop() {

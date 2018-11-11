@@ -8,6 +8,7 @@
 #include <MFRC522.h> //https://www.arduinolibraries.info/libraries/mfrc522
 #include <Wire.h>
 #include <LiquidCrystal_I2C.h> //https://github.com/marcoschwartz/LiquidCrystal_I2C/
+#include <TEA5767Radio.h>
 #include <Rotary.h> //http://www.buxtronix.net/2011/10/rotary-encoders-done-properly.html
 #include "LCDMenu.h"
 #include "SchallfroschBackend.h"
@@ -27,6 +28,9 @@ LiquidCrystal_I2C lcd(0x27, 16, 4);
 //MFRC522 mfrc522 = MFRC522(ssPin, resetPin); // Create instance
 
 Rotary rotary = Rotary(Constants::ENCODER_PIN_A, Constants::ENCODER_PIN_B);
+
+// I2C radio module
+TEA5767Radio radio = TEA5767Radio();
 
 
 LCDMenu lcdMenu = LCDMenu();
@@ -50,6 +54,7 @@ void setup() {
   Serial.begin(115200); // serial output for debugging
   lcd.begin(); // initialize the LCD
   lcdMenu.init(&lcd, &rotary, &sfBackend);
+  sfBackend.init(&radio);
 
 
   // ROTARY ENCODER SETUP

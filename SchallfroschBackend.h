@@ -2,11 +2,12 @@
 #define SF_BACKEND_h
 
 #include "Arduino.h"
+#include <TEA5767Radio.h>
 
 class SchallfroschBackend {
   public:
     SchallfroschBackend();
-    void init();
+    void init(TEA5767Radio *pRadio);
     void loop();
     bool getNotify();
     void openLocker();
