@@ -72,6 +72,9 @@ int volume = 0;
 // frequency of the radio module
 float freq = Constants::RADIO_FREQ_BEGIN;
 
+// true if frequency has changed
+bool freqChanged = false;
+
 
 // Saves the state of the 12V converter. True if on.
 bool converter12v = false;
@@ -106,6 +109,9 @@ void SchallfroschBackend::init(TEA5767Radio *pRadio) {
 }
 
 void SchallfroschBackend::loop() {
+  if (freqChanged) {
+    myRadio->setFrequency(freq); // refresh radio frequency
+  }
   checkTimers(); // Check for timers that are due
   toggleOnboardLED(); // Toogle LED to indicate that the board is not stuck/ crashed
 }
@@ -357,6 +363,7 @@ void SchallfroschBackend::incFreq() {
   if (freq > Constants::RADIO_FREQ_MAX) {
     freq = Constants::RADIO_FREQ_MIN;
   }
+  freqChanged = true;
 }
 
 void SchallfroschBackend::decFreq() {
@@ -364,6 +371,7 @@ void SchallfroschBackend::decFreq() {
   if (freq < Constants::RADIO_FREQ_MIN) {
     freq = Constants::RADIO_FREQ_MAX;
   }
+  freqChanged = true;
 }
 
 void SchallfroschBackend::setLedS2L() {

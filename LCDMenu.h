@@ -23,6 +23,7 @@ class LCDMenu
     void displayScreensaver();
     void displayMainMenu();
     void displaySubMenu();
+    void displaySubSubMenu();
     void handleEncoder();
     void checkEncoderButton();
     void handleShortPress();

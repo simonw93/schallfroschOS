@@ -6,6 +6,10 @@
 #include "SchallfroschBackend.h"
 
 /**
+ * TODO: Create a more flexible menu.
+ */
+
+/**
    Rotary encoder variables
 */
 
@@ -63,6 +67,8 @@ String subMenuEntries[mainMenuSize][4] = {
   {"Nutzer hinzuf.", "Nutzer entf."},
   {}
 };
+
+// const int subSubMenuSizes[mainMenuSize][];
 
 
 // character to indicate cursor position
@@ -124,14 +130,14 @@ Rotary *myRotary;
 SchallfroschBackend *sf;
 
 /**
- * Empty constructor.
- */
+   Empty constructor.
+*/
 LCDMenu::LCDMenu() {
 }
 
 /**
- * Initialize the lcd menu. Sets pointers to instances of necessary libraries. Call this once after creating an instance in the main sketch!
- */
+   Initialize the lcd menu. Sets pointers to instances of necessary libraries. Call this once after creating an instance in the main sketch!
+*/
 void LCDMenu::init(LiquidCrystal_I2C *pLcd, Rotary *pRotary, SchallfroschBackend *pSf) {
   myLcd = pLcd;
   myRotary = pRotary;
@@ -141,8 +147,8 @@ void LCDMenu::init(LiquidCrystal_I2C *pLcd, Rotary *pRotary, SchallfroschBackend
 }
 
 /**
- * Call this frequently. Does all the necessary display tasks.
- */
+   Call this frequently. Does all the necessary display tasks.
+*/
 void LCDMenu::loop() {
   handleEncoder();
   checkEncoderButton();
@@ -158,15 +164,15 @@ void LCDMenu::loop() {
 }
 
 /**
- * Call this whenever display data has been changed.
- */
+   Call this whenever display data has been changed.
+*/
 void LCDMenu::setChanged() {
   hasChanged = true;
 }
 
 /**
- * Updates the display.
- */
+   Updates the display.
+*/
 void LCDMenu::updateDisplay() {
   myLcd->clear();
   if (menPos[1] == -1) { // menu is inactive -> screensaver mode
@@ -181,8 +187,8 @@ void LCDMenu::updateDisplay() {
 }
 
 /**
- * Displays the screensaver.
- */
+   Displays the screensaver.
+*/
 void LCDMenu::displayScreensaver() {
   switch (menPos[0]) { //
     case 0:
@@ -207,8 +213,8 @@ void LCDMenu::displayMainMenu() {
   }
 }
 /**
- * TODO: Concatenate battery level string with battery value!
- */
+   TODO: Concatenate battery level string with battery value!
+*/
 void LCDMenu::displaySubMenu() {
   // Set variable menu content
 
@@ -263,6 +269,10 @@ void LCDMenu::displaySubMenu() {
   }
 }
 
+void LCDMenu::displaySubSubMenu() {
+
+}
+
 void LCDMenu::printBootScreen() {
   myLcd->setCursor(0, 0);
   myLcd->print("Schallfrosch OS");
@@ -299,24 +309,6 @@ void LCDMenu::handleShortPress() {
     }
   }
   else { // -> submenu
-    // handle sub menu function calls
-    /**
-       "Lautstaerke",
-      "Energiemodus",
-      "Geraete",
-      "Akku",
-      "Signalquelle",
-      "Radio",
-      "Beleuchtung",
-      "Schliessfach",
-      "Alarm",
-      "DSP",
-      "WiFi",
-      "Berechtigungen",
-      "Debug",
-      "Administration",
-      "Sperren"
-    */
     switch (menPos[1]) {
       case 1: // Energy
         switch (menPos[2]) {
