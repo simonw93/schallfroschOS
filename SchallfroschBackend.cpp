@@ -105,7 +105,7 @@ void SchallfroschBackend::init(TEA5767Radio *pRadio) {
   initializeBatteryValues(measureBatteryVoltage(Constants::BATTERY_VOLTAGE_ITERATIONS)); //initialize the battery values
   updateBattery(); // call updateBattery() to initialize all values
   myRadio = pRadio;
-  myRadio->setFrequency(Constants::RADIO_FREQ_BEGIN);
+  //myRadio->setFrequency(Constants::RADIO_FREQ_BEGIN);
 }
 
 void SchallfroschBackend::loop() {

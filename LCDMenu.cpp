@@ -2,12 +2,15 @@
 #include <LiquidCrystal_I2C.h>
 #include <Rotary.h> //http://www.buxtronix.net/2011/10/rotary-encoders-done-properly.html
 #include <Arduino.h>
+#include <string> // for string class 
 #include "Constants.h"
 #include "SchallfroschBackend.h"
 
+using namespace std;
+
 /**
- * TODO: Create a more flexible menu.
- */
+   TODO: Create a more flexible menu.
+*/
 
 /**
    Rotary encoder variables
@@ -22,8 +25,114 @@ const long encoderButtonLongPressTime = 500;
 
 
 /**
+   Linked list
+*/
+struct menItem {
+  struct menItem *parent, *child, *next, *prev;
+  String text;
+  void (*func)();
+};
+
+/**
+   List menu entries.
+*/
+struct menItem screensaver = {0, 0, 0, 0, "Screensaver", 0}; // screensaver dummy node
+struct menItem *current; // current menu item to display
+
+struct menItem m0lautstaerke = {0, 0, 0, 0, "Lautstaerke", 0};
+struct menItem m1_0lautstaerke = {0, 0, 0, 0, "", 0}; // volume
+
+struct menItem m0energie = {0, 0, 0, 0, "Energie", 0};
+struct menItem m1_0energie = {0, 0, 0, 0, "ECO-Modus", 0};
+struct menItem m1_1energie = {0, 0, 0, 0, "SPL-Modus", 0};
+
+struct menItem m0geraete = {0, 0, 0, 0, "Geraete", 0};
+struct menItem m1_0geraete = {0, 0, 0, 0, "12V: ", 0};
+struct menItem m1_1geraete = {0, 0, 0, 0, "USB-Lader: ", 0};
+struct menItem m1_2geraete = {0, 0, 0, 0, "Soundboard: ", 0};
+
+struct menItem m0akku = {0, 0, 0, 0, "Akku", 0};
+struct menItem m1_0akku = {0, 0, 0, 0, "Ladestand: ", 0};
+struct menItem m1_1akku = {0, 0, 0, 0, "Rest: ", 0};
+struct menItem m1_2akku = {0, 0, 0, 0, "Ladestand: ", 0};
+struct menItem m1_3akku = {0, 0, 0, 0, "Lader: ", 0};
+struct menItem m1_4akku = {0, 0, 0, 0, "Statistik: ", 0};
+struct menItem m2_0akku = {0, 0, 0, 0, "Laufzeit: ", 0};
+
+struct menItem m0signal = {0, 0, 0, 0, "Signalquelle", 0};
+struct menItem m0radio = {0, 0, 0, 0, "Radio", 0};
+struct menItem m0beleuchtung = {0, 0, 0, 0, "Beleuchtung", 0};
+struct menItem m0schliessfach = {0, 0, 0, 0, "Schliessfach", 0};
+struct menItem m0Alarm = {0, 0, 0, 0, "Alarmoptionen", 0};
+struct menItem m0DSP = {0, 0, 0, 0, "DSP-Optionen", 0};
+struct menItem m0WiFi = {0, 0, 0, 0, "WiFi-Optionen", 0};
+struct menItem mBerechtigungen = {0, 0, 0, 0, "Berechtigungen", 0};
+struct menItem m0Debug = {0, 0, 0, 0, "Debug", 0};
+struct menItem m0Administration = {0, 0, 0, 0, "Administration", 0};
+struct menItem m0Soundboard = {0, 0, 0, 0, "Soundboard", 0};
+struct menItem m0Sperren = {0, 0, 0, 0, "Sperren", 0};
+
+
+/**
+   Links the existing nodes to create the menu structure.
+*/
+void LCDMenu::linkNodes() {
+  current = &screensaver;
+  screensaver.prev = &screensaver;
+  screensaver.next = &screensaver;
+  screensaver.parent = &screensaver;
+  screensaver.child = &m0lautstaerke;
+
+  m0lautstaerke.parent = &screensaver;
+  m0lautstaerke.child = &m1_0lautstaerke;
+  m0lautstaerke.next = &m0energie;
+  m0lautstaerke.prev = &m0geraete; //&m0Sperren; //DEBUG
+  m1_0lautstaerke.parent = &m0lautstaerke;
+  m1_0lautstaerke.next = &m1_0lautstaerke;
+  m1_0lautstaerke.prev = &m1_0lautstaerke;
+  
+
+  m0energie.parent = &screensaver;
+  m0energie.child = &m1_0energie;
+  m0energie.next = &m0geraete;
+  m0energie.prev = &m0lautstaerke;
+  m1_0energie.parent = &m0energie;
+  m1_0energie.next = &m1_1energie;
+  m1_0energie.prev = &m1_1energie;
+  m1_1energie.parent = &m0energie;
+  m1_1energie.next = &m1_0energie;
+  m1_1energie.prev = &m1_0energie;
+
+  m0geraete.parent = &screensaver;
+  m0geraete.child = &m1_0geraete;
+  m0geraete.next = &m0akku; // DEBUG
+  m0geraete.prev = &m0energie;
+  m1_0geraete.parent = &m0geraete;
+  m1_0geraete.next = &m1_1geraete;
+  m1_0geraete.prev = &m1_2geraete;
+  m1_1geraete.parent = &m0geraete;
+  m1_1geraete.next = &m1_2geraete;
+  m1_1geraete.prev = &m1_0geraete;
+  m1_2geraete.parent = &m0geraete;
+  m1_2geraete.next = &m1_0geraete;
+  m1_2geraete.prev = &m1_1geraete;
+
+  m0akku.parent = &screensaver;
+  m0akku.child = &m1_0akku;
+  m0akku.next = &m0lautstaerke;
+  m0akku.prev = &m0geraete;
+
+  // TODO: Assemble whole menu, or crashes can occur!
+  // Also TODO: More defensive programming
+
+
+
+}
+
+/**
    Constants
 */
+const String cursorChar = "#";
 
 const int mainMenuSize = 15;
 // main menu entry names
@@ -140,6 +249,9 @@ void LCDMenu::init(LiquidCrystal_I2C *pLcd, Rotary *pRotary, SchallfroschBackend
   myRotary = pRotary;
   sf = pSf;
   myLcd->createChar(6, cross); // create cursor character
+  linkNodes();
+  //current = &screensaver;
+  myLcd->clear();
   printBootScreen();
 }
 
@@ -156,6 +268,9 @@ void LCDMenu::loop() {
   if ((millis() > display_refresh_timer) && (millis() > Constants::BOOT_SCREEN_DURATION) && hasChanged) {
     updateDisplay();
     hasChanged = false;
+    //const char *cstr = current->text.c_str();
+    //Serial.println(cstr);
+    Serial.println("Display refreshed!");
     display_refresh_timer = millis() + Constants::DISPLAY_REFRESH_RESET;
   }
 }
@@ -172,15 +287,7 @@ void LCDMenu::setChanged() {
 */
 void LCDMenu::updateDisplay() {
   myLcd->clear();
-  if (menPos[1] == -1) { // menu is inactive -> screensaver mode
-    displayScreensaver();
-  }
-  else if (menPos[2] == -1) { //sub menu is inactive, but menu is active -> main menu
-    displayMainMenu();
-  }
-  else { //  -> submenu
-    displaySubMenu();
-  }
+  printMenu();
 }
 
 /**
@@ -236,10 +343,7 @@ void LCDMenu::displaySubMenu() {
 
   int indexToDisplay = menPos[2];
 
-  String cursorChar = "#";
-  if (entryClicked) {
-    cursorChar = ">";
-  }
+
 
   //myLcd->setCursor(0, 0); // print cursor
   //myLcd->print("#"); // TODO: change this to the cursor character
@@ -284,128 +388,32 @@ void LCDMenu::printBootScreen() {
 */
 
 void LCDMenu::handleShortPress() {
-  if (menPos[1] == -1) { // menu is inactive -> screensaver mode
-    menPos[1] = 0;
-    menPos[0] = -1;
-    setChanged();
+  if (current == &screensaver) {
+    current = &m0lautstaerke;
   }
-  else if (menPos[2] == -1) { //sub menu is inactive, but menu is active -> main menu
-    if (subMenuSizes[menPos[1]] > 0) { // check if submenu can be displayed
-      menPos[2] = 0;
-      setChanged();
-    }
-    else { // main menu
-      switch (menPos[1]) {
-        case 14:
-          //lock system
-          //setChanged();
-          break;
-        default:
-          break;
-      }
-    }
+  if (current->func != 0) {
+    // call linked function
   }
-  else { // -> submenu
-    switch (menPos[1]) {
-      case 1: // Energy
-        switch (menPos[2]) {
-          case 0:
-            // go into eco mode
-            break;
-          case 1:
-            // go into spl mode
-            break;
-        }
-        break;
-      case 2: // Devices
-        switch (menPos[2]) {
-          case 0:
-            // toggle 12V
-            break;
-          case 1:
-            // toggle USB charger
-            break;
-          case 2:
-            // toggle soundboard
-            break;
-        }
-        break;
-      case 3: // Battery
-        if (menPos[2] == 2) {
-          // show statistics
-        }
-        break;
-      case 4: // Signal source
-        switch (menPos[2]) {
-          case 0:
-            //switch to bluetooth
-            break;
-          case 1:
-            //switch to AUX
-            break;
-          case 2:
-            //switch to radio
-            break;
-          case 3:
-            //switch to raspberry
-            break;
-        }
-        break;
-      case 5: // Radio
-        switch (menPos[2]) {
-          case 0:
-            entryClicked = true;
-            break;
-        }
-        break;
-      case 6: // Lighting
-        break;
-      case 7: // Locker
-        break;
-      case 8: // Alarm
-        break;
-      case 9: // DSP
-        break;
-      case 10: // WiFi
-        break;
-      case 11: // Berechtigungen
-        break;
-      case 12: // Debug
-        break;
-      case 13: // Admin
-        break;
-      default:
-        break;
-    }
-    //setChanged();
+  else if (current-> child != 0) {
+    current = current->child;
   }
+  setChanged();
 }
 
 void LCDMenu::handleLongPress() {
-  if (entryClicked) {
-    entryClicked = false;
+  if (current == &screensaver) {
+
   }
-  else if (menPos[1] >= 0 && menPos[2] == -1) { // menu is active
-    menPos[1] = -1;
-    menPos[0] = 0;
-    setChanged();
+  else {
+    current = current->parent;
   }
-  else if (menPos[2] >= 0) { // sub menu is active
-    menPos[2] = -1;
-    setChanged();
-  }
+  setChanged();
 }
 
 void LCDMenu::handleLeft() {
-  if (entryClicked) {
-    if (menPos[1] == 5) { //radio frequency menu
-      //decrease frequency
-    }
-  }
-  else if (menPos[1] == -1 || (menPos[1] == 0 && menPos[2] == 0)) { // volume change
-    //(*menu_cb_dec_vol)();
-    //(*menu_cb_refresh_data)();
-    setChanged();
+  if (current == &screensaver) {
+    //decrease volume
+    //setChanged();
   }
   else {
     decMenu();
@@ -415,15 +423,9 @@ void LCDMenu::handleLeft() {
 }
 
 void LCDMenu::handleRight() {
-  if (entryClicked) {
-    if (menPos[1] == 5) { //radio frequency menu
-      //increase frequency
-    }
-  }
-  else if (menPos[1] == -1 || (menPos[1] == 0 && menPos[2] == 0)) { // volume change
-    //(*menu_cb_inc_vol)();
-    //(*menu_cb_refresh_data)();
-    setChanged();
+  if (current == &screensaver) {
+    //increase volume
+    //setChanged
   }
   else {
     incMenu();
@@ -477,33 +479,11 @@ void LCDMenu::rotate() {
 }
 
 void LCDMenu::decMenu() {
-  if (menPos[1] >= 0 && menPos[2] == -1) { // menu is active
-    menPos[1] -= 1;
-    if (menPos[1] < 0) {
-      menPos[1] = mainMenuSize - 1; // reset position marker
-    }
-  }
-  else if (menPos[2] >= 0) { // sub menu is active
-    menPos[2] -= 1;
-    if (menPos[2] < 0) {
-      menPos[2] = subMenuSizes[menPos[1]] - 1; // reset position marker
-    }
-  }
+  current = current->prev;
 }
 
 void LCDMenu::incMenu() {
-  if (menPos[1] >= 0 && menPos[2] == -1) { // menu is active
-    menPos[1] += 1;
-    if (menPos[1] >=  mainMenuSize) {
-      menPos[1] = 0; // reset position marker
-    }
-  }
-  else if (menPos[2] >= 0) { // sub menu is active
-    menPos[2] += 1;
-    if (menPos[2] >=  subMenuSizes[menPos[1]]) {
-      menPos[2] = 0; // reset position marker
-    }
-  }
+  current = current->next;
 }
 
 /**
@@ -522,4 +502,65 @@ void LCDMenu::switchDisplay(bool value) {
     myLcd->noBacklight();
     // turn off display
   }
+}
+
+/**
+   Print the menu according to current state.
+*/
+void LCDMenu::printMenu() {
+  if (current == &screensaver) {
+    // display screensaver
+  }
+  else {
+    int cDepth = getDepth(current);
+    int linesToPrint = min(4, cDepth); // calculate how many lines to print
+    struct menItem *cNode = current;
+
+    Serial.print("Active menu node is ");
+    Serial.println(cNode->text);
+    Serial.print("Depth of active menu layer is ");
+    Serial.println(cDepth);
+
+    myLcd->setCursor(0, 0); // print cursor
+    myLcd->print(cursorChar); // TODO: change this to the cursor character
+    for (int i = 0; i < linesToPrint; i++) { //display entries
+      myLcd->setCursor(1, i);
+      //char *cstr = &cNode->text[0u];
+      if (cNode->text != 0) {
+        myLcd->print(cNode->text);
+      }
+      if (cNode->next != 0) {
+        cNode = cNode->next;
+      }
+
+      else {
+        Serial.println("cNode -> next is empty!");
+        Serial.print("Active menu node is ");
+        Serial.println(cNode->text);
+      }
+    }
+  }
+}
+
+/**
+   Returns the depth of a node by iteration.
+   @param node: The node
+*/
+int LCDMenu::getDepth(struct menItem *node) {
+  if (node->next == node) { //node has no next nodes
+    return 0;
+  }
+  struct menItem *cNode = node->next; // set temporary current node
+  int depth = 1;
+
+  while (cNode != node) {
+    if (cNode->next != 0) {
+      cNode = cNode->next;
+    }
+    depth ++;
+    if (depth > 100) { // safety measure to not end in an endless loop
+      break;
+    }
+  }
+  return depth;
 }

@@ -20,6 +20,9 @@ class LCDMenu
     void printBootScreen();
 
   private:
+    void linkNodes();
+    void printMenu();
+    int getDepth(struct menItem *node);
     void displayScreensaver();
     void displayMainMenu();
     void displaySubMenu();
