@@ -19,9 +19,6 @@ boolean button_set = false;
 boolean buttonLongPressed = false;
 long encoderButtonTimer = 0; //Timer for when the encoder button was pressed the last time
 const long encoderButtonLongPressTime = 500;
-const int encoderPinA = 18;   // right
-const int encoderPinB = 17;   // left
-const int encoderButton = 19; // switch
 
 
 /**
@@ -446,7 +443,7 @@ void LCDMenu::handleEncoder() {
 
 // rotary encoder button handling
 void LCDMenu::checkEncoderButton() {
-  if (digitalRead(encoderButton) == LOW) {
+  if (digitalRead(Constants::ENCODER_BUTTON) == LOW) {
     if (button_set == false) {
       button_set = true;
       encoderButtonTimer = millis(); // start timer
