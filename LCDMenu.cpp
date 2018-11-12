@@ -60,16 +60,53 @@ struct menItem m1_4akku = {0, 0, 0, 0, "Statistik: ", 0};
 struct menItem m2_0akku = {0, 0, 0, 0, "Laufzeit: ", 0};
 
 struct menItem m0signal = {0, 0, 0, 0, "Signalquelle", 0};
+struct menItem m1_0signal = {0, 0, 0, 0, "Bluetooth", 0};
+struct menItem m1_1signal = {0, 0, 0, 0, "AUX", 0};
+struct menItem m1_2signal = {0, 0, 0, 0, "Radio", 0};
+struct menItem m1_3signal = {0, 0, 0, 0, "Raspberry", 0};
+struct menItem m1_4signal = {0, 0, 0, 0, "Mikrofon", 0};
+
 struct menItem m0radio = {0, 0, 0, 0, "Radio", 0};
+struct menItem m1_0radio = {0, 0, 0, 0, "Frequenz", 0};
+struct menItem m2_0radio = {0, 0, 0, 0, "", 0}; // Frequenz aendern
+struct menItem m1_1radio = {0, 0, 0, 0, "Senderliste", 0};
+
 struct menItem m0beleuchtung = {0, 0, 0, 0, "Beleuchtung", 0};
+struct menItem m1_0beleuchtung = {0, 0, 0, 0, "Einschalten", 0}; // an/aus
+struct menItem m1_1beleuchtung = {0, 0, 0, 0, "Statisch", 0};
+struct menItem m1_2beleuchtung = {0, 0, 0, 0, "Sound2Light", 0};
+struct menItem m1_3beleuchtung = {0, 0, 0, 0, "Farbwechsel", 0};
+struct menItem m1_4beleuchtung = {0, 0, 0, 0, "Flutlicht", 0};
+
 struct menItem m0schliessfach = {0, 0, 0, 0, "Schliessfach", 0};
+struct menItem m1_0schliessfach = {0, 0, 0, 0, "Oeffnen", 0};
+
 struct menItem m0Alarm = {0, 0, 0, 0, "Alarmoptionen", 0};
+struct menItem m1_0Alarm = {0, 0, 0, 0, "Bewegungsalarm", 0};
+struct menItem m1_1Alarm = {0, 0, 0, 0, "Standortalarm", 0};
+struct menItem m1_2Alarm = {0, 0, 0, 0, "Deaktivieren", 0};
+struct menItem m1_3Alarm = {0, 0, 0, 0, "Einstellungen", 0};
+struct menItem m2_0Alarm = {0, 0, 0, 0, "Sens.: ", 0};
+struct menItem m2_1Alarm = {0, 0, 0, 0, "Radius: ", 0};
+
 struct menItem m0DSP = {0, 0, 0, 0, "DSP-Optionen", 0};
+struct menItem m1_0DSP = {0, 0, 0, 0, "Bass Boost", 0};
+struct menItem m1_1DSP = {0, 0, 0, 0, "Max SPL", 0};
+struct menItem m1_2DSP = {0, 0, 0, 0, "Subwoofer", 0};
+
 struct menItem m0WiFi = {0, 0, 0, 0, "WiFi-Optionen", 0};
-struct menItem mBerechtigungen = {0, 0, 0, 0, "Berechtigungen", 0};
+struct menItem m1_0WiFi = {0, 0, 0, 0, "Einschalten", 0};
+struct menItem m1_1WiFi = {0, 0, 0, 0, "Verb. Geraete", 0};
+struct menItem m1_2WiFi = {0, 0, 0, 0, "Passwort", 0};
+
+struct menItem m0Berechtigungen = {0, 0, 0, 0, "Berechtigungen", 0};
+
 struct menItem m0Debug = {0, 0, 0, 0, "Debug", 0};
+
 struct menItem m0Administration = {0, 0, 0, 0, "Administration", 0};
+
 struct menItem m0Soundboard = {0, 0, 0, 0, "Soundboard", 0};
+
 struct menItem m0Sperren = {0, 0, 0, 0, "Sperren", 0};
 
 
@@ -90,7 +127,7 @@ void LCDMenu::linkNodes() {
   m1_0lautstaerke.parent = &m0lautstaerke;
   m1_0lautstaerke.next = &m1_0lautstaerke;
   m1_0lautstaerke.prev = &m1_0lautstaerke;
-  
+
 
   m0energie.parent = &screensaver;
   m0energie.child = &m1_0energie;
@@ -119,14 +156,160 @@ void LCDMenu::linkNodes() {
 
   m0akku.parent = &screensaver;
   m0akku.child = &m1_0akku;
-  m0akku.next = &m0lautstaerke;
+  m0akku.next = &m0signal;
   m0akku.prev = &m0geraete;
+  m1_0akku.parent = &m0akku;
+  m1_0akku.next = &m1_1akku;
+  m1_0akku.prev = &m1_4akku;
+  m1_1akku.parent = &m0akku;
+  m1_1akku.next = &m1_2akku;
+  m1_1akku.prev = &m1_0akku;
+  m1_2akku.parent = &m0akku;
+  m1_2akku.next = &m1_3akku;
+  m1_2akku.prev = &m1_1akku;
+  m1_3akku.parent = &m0akku;
+  m1_3akku.next = &m1_4akku;
+  m1_3akku.prev = &m1_2akku;
+  m1_4akku.parent = &m0akku;
+  m1_4akku.next = &m1_0akku;
+  m1_4akku.prev = &m1_3akku;
+  m1_4akku.child = &m2_0akku;
+  m2_0akku.parent = &m1_4akku;
+  m2_0akku.next = &m2_0akku;
+  m2_0akku.prev = &m2_0akku;
 
-  // TODO: Assemble whole menu, or crashes can occur!
-  // Also TODO: More defensive programming
+  m0signal.parent = &screensaver;
+  m0signal.next = &m0radio;
+  m0signal.prev = &m0akku;
+  m0signal.child = &m1_0signal;
+  m1_0signal.parent = &m0signal;
+  m1_0signal.next = &m1_1signal;
+  m1_0signal.prev = &m1_4signal;
+  m1_1signal.parent = &m0signal;
+  m1_1signal.next = &m1_2signal;
+  m1_1signal.prev = &m1_0signal;
+  m1_2signal.parent = &m0signal;
+  m1_2signal.next = &m1_3signal;
+  m1_2signal.prev = &m1_1signal;
+  m1_3signal.parent = &m0signal;
+  m1_3signal.next = &m1_4signal;
+  m1_3signal.prev = &m1_2signal;
+  m1_4signal.parent = &m0signal;
+  m1_4signal.next = &m1_0signal;
+  m1_4signal.prev = &m1_3signal;
 
+  m0radio.parent = &screensaver;
+  m0radio.next = &m0beleuchtung;
+  m0radio.prev = &m0signal;
+  m0radio.child = &m1_0radio;
+  m1_0radio.parent = &m0radio;
+  m1_0radio.next = &m1_1radio;
+  m1_0radio.prev = &m1_1radio;
+  m2_0radio.parent = &m1_0radio;
+  m2_0radio.next = &m2_0radio;
+  m2_0radio.prev = &m2_0radio;
+  m1_1radio.parent = &m0radio;
+  m1_1radio.next = &m1_0radio;
+  m1_1radio.prev = &m1_0radio;
 
+  m0beleuchtung.parent = &screensaver;
+  m0beleuchtung.next = &m0schliessfach;
+  m0beleuchtung.prev = &m0radio;
+  m0beleuchtung.child = &m1_0beleuchtung;
+  m1_0beleuchtung.parent = &m0beleuchtung;
+  m1_0beleuchtung.next = &m1_1beleuchtung;
+  m1_0beleuchtung.prev = &m1_4beleuchtung;
+  m1_1beleuchtung.parent = &m0beleuchtung;
+  m1_1beleuchtung.next = &m1_2beleuchtung;
+  m1_1beleuchtung.prev = &m1_0beleuchtung;
+  m1_2beleuchtung.parent = &m0beleuchtung;
+  m1_2beleuchtung.next = &m1_3beleuchtung;
+  m1_2beleuchtung.prev = &m1_1beleuchtung;
+  m1_3beleuchtung.parent = &m0beleuchtung;
+  m1_3beleuchtung.next = &m1_4beleuchtung;
+  m1_3beleuchtung.prev = &m1_2beleuchtung;
+  m1_4beleuchtung.parent = &m0beleuchtung;
+  m1_4beleuchtung.next = &m1_0beleuchtung;
+  m1_4beleuchtung.prev = &m1_3beleuchtung;
 
+  m0schliessfach.parent = &screensaver;
+  m0schliessfach.next = &m0Alarm;
+  m0schliessfach.prev = &m0beleuchtung;
+  m0schliessfach.child = &m1_0schliessfach;
+  m1_0schliessfach.parent = &m0schliessfach;
+  m1_0schliessfach.next = &m1_0schliessfach;
+  m1_0schliessfach.prev = &m1_0schliessfach;
+
+  m0Alarm.parent = &screensaver;
+  m0Alarm.next = &m0DSP;
+  m0Alarm.prev = &m0schliessfach;
+  m0Alarm.child = &m1_0Alarm;
+  m1_0Alarm.parent = &m0Alarm;
+  m1_0Alarm.next = &m1_1Alarm;
+  m1_0Alarm.prev = &m1_3Alarm;
+  m1_1Alarm.parent = &m0Alarm;
+  m1_1Alarm.next = &m1_2Alarm;
+  m1_1Alarm.prev = &m1_0Alarm;
+  m1_2Alarm.parent = &m0Alarm;
+  m1_2Alarm.next = &m1_3Alarm;
+  m1_2Alarm.prev = &m1_1Alarm;
+  m1_3Alarm.parent = &m0Alarm;
+  m1_3Alarm.next = &m1_0Alarm;
+  m1_3Alarm.prev = &m1_2Alarm;
+  m2_0Alarm.parent = &m1_3Alarm;
+  m2_0Alarm.next = &m2_1Alarm;
+  m2_0Alarm.prev = &m2_1Alarm;
+  m2_1Alarm.parent = &m1_3Alarm;
+  m2_1Alarm.next = &m2_0Alarm;
+  m2_1Alarm.prev = &m2_0Alarm;
+
+  m0DSP.parent = &screensaver;
+  m0DSP.next = &m0WiFi;
+  m0DSP.prev = &m0Alarm;
+  m0DSP.child = &m1_0DSP;
+  m1_0DSP.parent = &m0DSP;
+  m1_0DSP.next = &m1_1DSP;
+  m1_0DSP.prev = &m1_2DSP;
+  m1_1DSP.parent = &m0DSP;
+  m1_1DSP.next = &m1_2DSP;
+  m1_1DSP.prev = &m1_0DSP;
+  m1_2DSP.parent = &m0DSP;
+  m1_2DSP.next = &m1_0DSP;
+  m1_2DSP.prev = &m1_1DSP;
+
+  m0WiFi.parent = &screensaver;
+  m0WiFi.next = &m0Berechtigungen;
+  m0WiFi.prev = &m0DSP;
+  m0WiFi.child = &m1_0WiFi;
+  m1_0WiFi.parent = &m0WiFi;
+  m1_0WiFi.next = &m1_1WiFi;
+  m1_0WiFi.prev = &m1_2WiFi;
+  m1_1WiFi.parent = &m0WiFi;
+  m1_1WiFi.next = &m1_2WiFi;
+  m1_1WiFi.prev = &m1_0WiFi;
+  m1_2WiFi.parent = &m0WiFi;
+  m1_2WiFi.next = &m1_0WiFi;
+  m1_2WiFi.prev = &m1_1WiFi;
+
+  m0Berechtigungen.parent = &screensaver;
+  m0Berechtigungen.next = &m0Debug;
+  m0Berechtigungen.prev = &m0WiFi;
+
+  m0Debug.parent = &screensaver;
+  m0Debug.next = &m0Administration;
+  m0Debug.prev = &m0Berechtigungen;
+
+  m0Administration.parent = &screensaver;
+  m0Administration.next = &m0Soundboard;
+  m0Administration.prev = &m0Debug;
+
+  m0Soundboard.parent = &screensaver;
+  m0Soundboard.next = &m0Sperren;
+  m0Soundboard.prev = &m0Administration;
+
+  m0Sperren.parent = &screensaver;
+  m0Sperren.next = &m0lautstaerke;
+  m0Sperren.prev = &m0Soundboard;
 }
 
 /**
@@ -479,11 +662,15 @@ void LCDMenu::rotate() {
 }
 
 void LCDMenu::decMenu() {
-  current = current->prev;
+  if (current->prev != 0) {
+    current = current->prev;
+  }
 }
 
 void LCDMenu::incMenu() {
-  current = current->next;
+  if (current->next != 0) {
+    current = current->next;
+  }
 }
 
 /**
